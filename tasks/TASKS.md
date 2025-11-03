@@ -125,47 +125,44 @@ Each day has clear objectives and deliverables. Tasks are ordered by priority an
 ### Afternoon Session (3-4 hours)
 
 #### OpenAI Integration
-- [ ] **Task 1.13:** Create OpenAI Cloud Function with optimal settings (30 min)
-  - `functions/src/index.ts` (TypeScript)
-  - Create HTTP Cloud Function for chat endpoint
-  - Initialize OpenAI client with API key (from environment variables)
+- [ ] **Task 1.13:** Create OpenAI service with optimal settings (30 min)
+  - `src/services/openai.ts`
+  - Initialize OpenAI client with API key
+  - Create chat completion function using GPT-4o-mini (cost-effective)
   - Configure for natural conversation:
     - model: "gpt-4o-mini"
     - temperature: 0.8
     - frequency_penalty: 0.5
     - presence_penalty: 0.3
-    - max_tokens: null (no limit - flexible for any problem complexity)
-  - Implement Server-Sent Events (SSE) streaming format
-  - Set SSE headers (Content-Type: text/event-stream)
-  - Stream OpenAI response as SSE events
-  - Add error handling (console only, no user-facing errors)
+    - max_tokens: 150
+  - Add error handling
+  - Test with simple prompt
 
-- [ ] **Task 1.14:** Create streaming hook with SSE support (1 hour)
+- [ ] **Task 1.14:** Create streaming hook with natural conversation settings (1 hour)
   - `src/hooks/useStreaming.ts`
   - Implement streaming state (streamingMessage, isStreaming)
-  - Create startStream function using EventSource API
-  - Connect to Cloud Function SSE endpoint
-  - Process SSE events token by token
-  - Parse SSE format (`data: {...}`)
+  - Create startStream function
+  - Process stream chunks token by token
   - Update state progressively
   - Handle stream completion
-  - Handle connection errors (console only)
+  - Add error handling
+  - Configure OpenAI with natural conversation parameters:
+    - temperature: 0.8 (more varied, natural language)
+    - frequency_penalty: 0.5 (reduces repetition)
+    - presence_penalty: 0.3 (encourages variety)
 
 - [ ] **Task 1.15:** Build StreamingMessage component (30 min)
   - `src/components/Chat/StreamingMessage.tsx`
   - Display streaming text with cursor animation
-  - Show "Tutor is thinking..." indicator before stream starts
-  - Smooth text appearance as chunks arrive
-  - Handle completion state (hide cursor)
-  - Handle idle/streaming/complete/error states
+  - Show "Tutor is thinking..." before stream starts
+  - Smooth text appearance
+  - Handle completion state
 
 - [ ] **Task 1.16:** Integrate streaming into ChatContainer (30 min)
   - Use useStreaming hook
-  - Call Cloud Function SSE endpoint when user sends message
-  - Show StreamingMessage component during AI response
-  - Convert streaming message to regular Message on completion
-  - Update message list with completed message
-  - Handle errors gracefully (console only)
+  - Show StreamingMessage during AI response
+  - Convert streaming message to regular message on completion
+  - Update message list
 
 #### Socratic Prompting (MOST IMPORTANT)
 - [ ] **Task 1.17:** Create natural conversational system prompt (1 hour)

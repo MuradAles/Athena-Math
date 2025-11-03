@@ -66,7 +66,7 @@ AI: Exactly! Try it out.
   temperature: 0.8,         // More natural, varied responses
   frequency_penalty: 0.5,   // Reduces repeating same phrases
   presence_penalty: 0.3,    // Encourages variety
-  max_tokens: 150           // Reasonable for tutoring
+  max_tokens: null          // No limit - flexible for any problem complexity
 }
 ```
 
@@ -74,7 +74,7 @@ AI: Exactly! Try it out.
 - Higher temperature (0.8) = more creative, human-like
 - Frequency penalty = stops "What should we do next?" repetition
 - Presence penalty = encourages new approaches
-- Max tokens = keeps responses concise (tutor-like)
+- No max_tokens = flexible responses (simple problems = short, complex problems = longer)
 
 ---
 
@@ -150,6 +150,65 @@ AI: Exactly! Try it out.
 
 ---
 
+## 🌊 Streaming Implementation
+
+### ✅ Server-Sent Events (SSE) - CONFIRMED
+
+**Why SSE:**
+- **Cost:** Low (standard HTTP, no extra cost)
+- **Performance:** Real-time streaming, low latency
+- **Complexity:** Simple (built-in browser API)
+- **Perfect fit:** One-way streaming (OpenAI → Frontend)
+- **Auto-reconnection:** Built-in connection recovery
+
+**Implementation:**
+- **Backend:** Cloud Function (TypeScript) with SSE format
+- **Frontend:** EventSource API for receiving stream
+- **Format:** `data: {...}\n\n` (SSE standard format)
+
+### ✅ TypeScript for Cloud Functions - CONFIRMED
+
+**Why TypeScript:**
+- Type safety across the project
+- Better developer experience
+- Consistent language (frontend + backend)
+- Better IDE support
+
+**Structure:**
+```
+functions/
+  └── src/
+      └── index.ts (TypeScript)
+```
+
+### ✅ Error Handling Strategy
+
+**Approach:**
+- Console logging only (no user-facing errors)
+- Silent failures for better UX
+- Development debugging in console
+- Production: No error messages shown to users
+
+**Why:**
+- Better user experience
+- Avoids technical jargon
+- Keeps UI clean
+- Errors logged for debugging
+
+### ✅ No Max Tokens Limit - CONFIRMED
+
+**Why:**
+- Problems vary greatly in complexity (simple math → calculus)
+- AI needs flexibility to explain appropriately
+- No artificial limits on response length
+- Better teaching quality (can explain complex topics)
+
+**Trade-off:**
+- Potentially longer responses (higher token cost)
+- But: Better teaching quality is worth it
+
+---
+
 ## 💰 Cost Optimization
 
 ### Development Phase (3 days)
@@ -165,9 +224,10 @@ AI: Exactly! Try it out.
 ### Cost Control Techniques
 1. ✅ Use GPT-4o-mini (not GPT-4o)
 2. ✅ Send only last 8 messages
-3. ✅ Set max_tokens: 150
+3. ✅ No max_tokens limit (flexible for any problem complexity)
 4. ✅ Use GPT-4o only for image extraction
 5. ✅ Optimize system prompt length
+6. ✅ SSE streaming (no extra cost vs other methods)
 
 ---
 
@@ -221,7 +281,8 @@ AI: Exactly! Try it out.
 ### Cost Efficiency
 - [ ] Using GPT-4o-mini for conversations
 - [ ] Only sending last 8 messages
-- [ ] Max tokens set to 150
+- [ ] No max_tokens limit (flexible responses)
+- [ ] SSE streaming (low cost)
 - [ ] Total cost under $3 for development
 - [ ] Estimated $1-2/month for production
 

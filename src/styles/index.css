@@ -1,0 +1,18 @@
+/**
+ * Global styles entry point
+ * Imports all stylesheets in correct order
+ */
+
+/* 1. Reset (first to establish base) */
+@import './reset.css';
+
+/* 2. Variables (needed by all other styles) */
+@import './variables.css';
+
+/* 3. Component styles */
+@import './buttons.css';
+@import './forms.css';
+
+/* 4. Utilities (last, highest specificity) */
+@import './utils.css';
+
