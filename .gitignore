@@ -25,4 +25,7 @@ dist-ssr
 
 .env
 
+# Firebase Functions compiled output (auto-generated)
+functions/lib
+
 .gitkeep

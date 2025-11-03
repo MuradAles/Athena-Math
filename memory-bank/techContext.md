@@ -28,8 +28,29 @@
 - **Vercel or Render** - Frontend hosting (NOT Firebase Hosting)
 
 ### AI Services
-- **OpenAI GPT-4o-mini** - Conversations (cost-effective, ~$0.002/conversation)
+- **OpenAI GPT-4o-mini** - Conversations (current, cost-effective, ~$0.002/conversation)
+  - **Issue:** Sometimes affirms wrong answers on complex math problems
+  - **Future:** Consider switching to GPT-5-mini or GPT-4o when finishing project
 - **OpenAI GPT-4o** - Image extraction only (vision, ~$0.01/image)
+
+### Model Selection (Future Improvement)
+**Current:** GPT-4o-mini
+- Cost: ~$0.15 per million input tokens, ~$0.60 per million output tokens
+- Math accuracy: Good for simple problems, weaker for complex math
+- Known issue: Makes mistakes on complex factoring (affirms wrong answers)
+
+**Future Options (Switch LAST when finishing project):**
+1. **GPT-5-mini** (if available): Better math accuracy, similar cost
+   - Cost: ~$0.25 per million input tokens, ~$2 per million output tokens
+   - Better reasoning capabilities
+   - **Action:** Try this first if available
+
+2. **GPT-4o**: Better math accuracy, 10x more expensive
+   - Cost: ~$2.50 per million input tokens, ~$10 per million output tokens
+   - Much better for complex math
+   - **Action:** Use if GPT-5-mini not available and validation not enough
+
+**Decision:** Focus on validation improvements first, switch model LAST
 
 ---
 

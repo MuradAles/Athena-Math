@@ -129,7 +129,7 @@ interface Conversation {
 ### Context Window (Sent to OpenAI)
 ```typescript
 {
-  model: "gpt-4o-mini",
+  model: "gpt-4o-mini", // Current: cost-effective, good for simple math
   messages: [
     { role: "system", content: NATURAL_PROMPT },
     ...last8UserAndAssistantMessages
@@ -141,6 +141,30 @@ interface Conversation {
   max_tokens: 150
 }
 ```
+
+### Model Selection (Future Improvement)
+**Current:** GPT-4o-mini
+- Cost: ~$0.15 per million input tokens, ~$0.60 per million output tokens
+- Math accuracy: Good for simple problems, weaker for complex math
+- Speed: Fast
+- Issue: Makes mistakes on complex factoring (e.g., affirming wrong answers)
+
+**Future Options:**
+1. **GPT-5-mini** (if available): Better math accuracy, similar cost to GPT-4o-mini
+   - Cost: ~$0.25 per million input tokens, ~$2 per million output tokens
+   - Better reasoning capabilities
+   - Fast performance
+   - **Recommendation:** Try this first when available
+
+2. **GPT-4o**: Better math accuracy, but 10x more expensive
+   - Cost: ~$2.50 per million input tokens, ~$10 per million output tokens
+   - Much better for complex math
+   - **Recommendation:** Use if GPT-5-mini not available and validation not enough
+
+**Decision:** Switch model LAST when finishing project (after all other improvements)
+- Focus on validation improvements first
+- Test with current model
+- Switch model only if validation improvements not sufficient
 
 ---
 

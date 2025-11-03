@@ -1,0 +1,73 @@
+/**
+ * StreamingMessage styles
+ * Animated cursor and thinking indicator
+ */
+
+.streaming-message {
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  border-radius: var(--spacing-sm);
+}
+
+.streaming-message.assistant-message {
+  background-color: var(--color-surface);
+  align-self: flex-start;
+  max-width: 80%;
+  margin-right: auto;
+}
+
+.streaming-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.thinking-indicator {
+  color: var(--color-text-secondary);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.streaming-text {
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.6;
+}
+
+.streaming-cursor {
+  display: inline-block;
+  background-color: var(--color-primary);
+  width: 2px;
+  height: 1.2em;
+  margin-left: 2px;
+  animation: blink 1s infinite;
+  vertical-align: baseline;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .streaming-message.assistant-message {
+    max-width: 90%;
+  }
+}
+

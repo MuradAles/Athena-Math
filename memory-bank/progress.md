@@ -30,17 +30,22 @@
 - ✅ Chat components barrel export created (`src/components/Chat/index.ts`)
 - ✅ App.tsx updated to use ChatContainer
 
-**Note:** Basic chat UI is functional with placeholder responses. Ready for OpenAI integration.
+**Note:** Streaming integration complete! Basic chat UI functional with real OpenAI streaming. Ready for Socratic prompt refinement.
 
 ---
 
 ## 🚧 In Progress
 
 ### Day 1 - OpenAI Integration
-- [ ] OpenAI service (Task 1.13)
-- [ ] Streaming hook (Task 1.14)
-- [ ] StreamingMessage component (Task 1.15)
-- [ ] Streaming integration (Task 1.16)
+- ✅ OpenAI Cloud Function (Task 1.13) - COMPLETED
+- ✅ Streaming hook (Task 1.14) - COMPLETED
+- ✅ StreamingMessage component (Task 1.15) - COMPLETED
+- ✅ Streaming integration (Task 1.16) - COMPLETED
+
+### Day 1 - Socratic Prompting (NEXT)
+- [ ] Natural conversational system prompt (Task 1.17) - MOST IMPORTANT
+- [ ] Prompt testing with hardcoded problem (Task 1.18)
+- [ ] Prompt refinement based on testing (Task 1.19)
 
 ---
 
@@ -75,9 +80,9 @@
 
 ## 🎯 Current Status
 
-**Phase:** Day 1 - Morning Session Complete  
-**Focus:** OpenAI integration and streaming  
-**Next:** OpenAI service setup and streaming hook (Tasks 1.13-1.16)  
+**Phase:** Day 1 - Afternoon Session - OpenAI Integration Complete  
+**Focus:** Socratic prompting (natural conversational flow)  
+**Next:** Create natural conversational system prompt (Task 1.17)  
 **Blockers:** None
 
 ---
@@ -85,14 +90,14 @@
 ## 📊 Completion Metrics
 
 ### Day 1 Goals
-- [ ] Can send message and receive streaming response
-- [ ] AI follows Socratic method (asks, doesn't tell)
-- [ ] Conversation feels natural and encouraging
-- [ ] Successfully completed 5+ turn conversation
-- [ ] Prompt works on at least 2 problem types
-- [ ] No critical bugs in UI or streaming
+- [x] Can send message and receive streaming response ✅
+- [ ] AI follows Socratic method (asks, doesn't tell) - Needs prompt refinement
+- [ ] Conversation feels natural and encouraging - Needs prompt refinement
+- [ ] Successfully completed 5+ turn conversation - Needs testing
+- [ ] Prompt works on at least 2 problem types - Needs testing
+- [x] No critical bugs in UI or streaming ✅
 
-**Progress:** 0/6 (0%)
+**Progress:** 2/6 (33%)
 
 ### Overall Project Goals
 - [ ] Successfully guides students through 5+ different problem types
@@ -110,7 +115,9 @@
 - ✅ Import error: Created barrel export (`src/types/index.ts`) and used `import type` for type-only imports
 
 **Current:**
-- None - Basic chat UI working with placeholder responses
+- ⚠️ **Validation Issue:** AI sometimes affirms wrong answers (e.g., "(2x - 6)(2x - 6)" for factoring problem)
+- **Solution:** Strengthen validation protocol (immediate) + switch model later (GPT-5-mini or GPT-4o) if needed
+- **Priority:** Focus on validation improvements first, model switching deferred to project completion
 
 ---
 
@@ -120,9 +127,10 @@
 1. Using Firebase Cloud Functions for secure API calls
 2. Hosting on Vercel/Render (not Firebase Hosting)
 3. OpenAI SDK direct (not LangChain)
-4. GPT-4o-mini for conversations, GPT-4o for images
+4. GPT-4o-mini for conversations, GPT-4o for images (current)
 5. Natural conversation settings (temp: 0.8, penalties: 0.5/0.3)
 6. Context window: last 8 messages only
+7. **Model switching deferred:** Focus on validation improvements first, switch model (GPT-5-mini or GPT-4o) LAST when finishing project
 
 ### Critical Reminders
 - **Priority #1:** Natural conversational prompt (not robotic)

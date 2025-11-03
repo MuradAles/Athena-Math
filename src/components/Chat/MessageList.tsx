@@ -10,9 +10,10 @@ import './MessageList.css';
 
 interface MessageListProps {
   messages: MessageType[];
+  streamingMessage?: React.ReactNode | null;
 }
 
-export const MessageList = ({ messages }: MessageListProps) => {
+export const MessageList = ({ messages, streamingMessage }: MessageListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -21,9 +22,9 @@ export const MessageList = ({ messages }: MessageListProps) => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, streamingMessage]);
 
-  if (messages.length === 0) {
+  if (messages.length === 0 && !streamingMessage) {
     return (
       <div className="message-list message-list--empty">
         <p className="message-list__empty-text">
@@ -39,6 +40,7 @@ export const MessageList = ({ messages }: MessageListProps) => {
         {messages.map((message) => (
           <Message key={message.id} message={message} />
         ))}
+        {streamingMessage}
         <div ref={messagesEndRef} />
       </div>
     </div>

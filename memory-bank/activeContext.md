@@ -102,10 +102,20 @@
 ### Architecture
 - ✅ **OpenAI SDK Direct** (not LangChain) - simpler, smaller, better streaming
 - ✅ **Firebase Cloud Functions** - for secure API key handling
-- ✅ **GPT-4o-mini** - for conversations (cost-effective)
+- ✅ **GPT-4o-mini** - for conversations (current, cost-effective)
+  - **Known Issue:** Sometimes affirms wrong answers on complex math
+  - **Future:** Consider GPT-5-mini or GPT-4o when finishing project
 - ✅ **GPT-4o** - for image extraction only (vision required)
 - ✅ **Hosting:** Vercel or Render (not Firebase Hosting)
 - ✅ **Services:** Firebase (Firestore + Storage + Cloud Functions)
+
+### Model Selection Decision
+- **Current:** GPT-4o-mini (cost-effective, good for simple math)
+- **Future Options:**
+  1. **GPT-5-mini** (if available): Better math accuracy, similar cost → Try first
+  2. **GPT-4o**: Better math accuracy, 10x more expensive → Use if GPT-5-mini not available
+- **Decision:** Switch model LAST when finishing project (after all other improvements)
+- **Focus:** Validation improvements first, model switching deferred
 
 ### Conversation Management
 - **Context Window:** Only last 8 messages to OpenAI (cost optimization)
