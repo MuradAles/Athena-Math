@@ -1,20 +1,36 @@
 /**
  * ChatContainer component
  * Main chat interface combining MessageList and InputArea
+ * Now integrated with Firestore for persistence
  */
 
-import { useState, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import type { Message as MessageType } from '../../types';
 import { MessageList } from './MessageList';
 import { InputArea } from './InputArea';
 import { StreamingMessage } from './StreamingMessage';
 import { useStreaming } from '../../hooks/useStreaming';
+import { useChats } from '../../hooks/useChats';
+import { useAuthContext } from '../../contexts/AuthContext';
 import { generateContextString, saveProblemContext } from '../../utils/storage';
 import './ChatContainer.css';
 
-export const ChatContainer = () => {
-  const [messages, setMessages] = useState<MessageType[]>([]);
-  const [currentProblem, setCurrentProblem] = useState<string | undefined>();
+interface ChatContainerProps {
+  chatId: string | null;
+}
+
+export const ChatContainer = ({ chatId }: ChatContainerProps) => {
+  const { user } = useAuthContext();
+  const { currentChat, addMessage, selectChat } = useChats(user?.uid || null);
+
+  // Sync chatId prop with useChats
+  useEffect(() => {
+    if (chatId) {
+      selectChat(chatId);
+    } else {
+      selectChat(null);
+    }
+  }, [chatId, selectChat]);
   
   const {
     streamingMessage,
@@ -23,40 +39,75 @@ export const ChatContainer = () => {
     reset: resetStream,
   } = useStreaming();
 
-  const handleSendMessage = useCallback((content: string) => {
-    // Create user message
-    const userMessage: MessageType = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content,
-      timestamp: new Date(),
-    };
+  // Get messages from current chat
+  const messages = currentChat?.messages || [];
+  const currentProblem = currentChat?.problem;
 
-    setMessages((prev) => [...prev, userMessage]);
+  const handleSendMessage = useCallback(
+    async (content: string, imageUrl?: string) => {
+      if (!chatId || !user || !currentChat) {
+        console.error('Cannot send message: missing chatId, user, or currentChat', { chatId, user: !!user, currentChat: !!currentChat });
+        return;
+      }
 
-    // Prepare messages array for OpenAI (format: {role, content})
-    const messagesForAPI = [
-      ...messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-      {
-        role: 'user' as const,
-        content,
-      },
-    ];
+      console.log('Sending message:', content, imageUrl ? 'with image' : '');
 
-    // Generate problem context from LocalStorage
-    const problemContext = generateContextString();
+      // Create user message (store imageUrl separately)
+      const userMessage: MessageType = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content: content || '',
+        imageUrl: imageUrl, // Store image URL separately
+        timestamp: new Date(),
+      };
 
-    // Start streaming AI response
-    resetStream(); // Clear any previous stream state
-    
-    startStream({
+      // Save user message to Firestore
+      try {
+        await addMessage(userMessage);
+        console.log('User message saved to Firestore');
+      } catch (error) {
+        console.error('Error saving user message:', error);
+        alert('Failed to save message. Check console for details.');
+        return;
+      }
+
+      // Prepare messages array for OpenAI
+      // If there's an image, format it as OpenAI's vision format
+      const newUserMessage = imageUrl
+        ? {
+            role: 'user' as const,
+            content: [
+              { type: 'text' as const, text: content || 'What is this problem?' },
+              { type: 'image_url' as const, image_url: { url: imageUrl } },
+            ],
+          }
+        : {
+            role: 'user' as const,
+            content: content || '',
+          };
+
+      const messagesForAPI = [
+        ...messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+        newUserMessage,
+      ];
+
+      console.log('Messages for API:', messagesForAPI.length, 'messages');
+
+      // Generate problem context from LocalStorage
+      const problemContext = generateContextString();
+
+      // Start streaming AI response
+      resetStream(); // Clear any previous stream state
+      
+      console.log('Starting stream...');
+      startStream({
       messages: messagesForAPI,
       problem: currentProblem,
       problemContext,
-      onComplete: (completeMessage: string) => {
+        onComplete: async (completeMessage: string) => {
         // Convert streaming message to regular message on completion
         const assistantMessage: MessageType = {
           id: `assistant-${Date.now()}`,
@@ -65,7 +116,8 @@ export const ChatContainer = () => {
           timestamp: new Date(),
         };
         
-        setMessages((prev) => [...prev, assistantMessage]);
+          // Save assistant message to Firestore
+          await addMessage(assistantMessage);
         
         // If student solved problem successfully (AI confirms with "Perfect!" or similar)
         const isProblemSolved = 
@@ -90,21 +142,22 @@ export const ChatContainer = () => {
           });
         }
         
-        // If user provides a new problem in their message, set it as current problem
-        // This is a simple detection - can be improved
-        if (content.includes('=') || content.includes('solve') || content.includes('help')) {
-          // Extract problem from message (simple heuristic)
-          const problemMatch = content.match(/([^.!?]+[=<>≤≥].+)/) || 
-                               content.match(/(solve|help|find|calculate).+/i);
-          if (problemMatch) {
-            setCurrentProblem(problemMatch[0]);
-          }
-        }
-        
         resetStream();
       },
     });
-  }, [messages, currentProblem, startStream, resetStream]);
+    },
+    [chatId, user, messages, currentProblem, addMessage, startStream, resetStream]
+  );
+
+  if (!chatId) {
+    return (
+      <div className="chat-container">
+        <div className="chat-empty">
+          <p>Select a chat from the sidebar or create a new chat to get started!</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="chat-container">
@@ -120,7 +173,10 @@ export const ChatContainer = () => {
           ) : null
         }
       />
-      <InputArea onSendMessage={handleSendMessage} />
+      <InputArea 
+        onSendMessage={handleSendMessage} 
+        disabled={isStreaming}
+      />
     </div>
   );
 };

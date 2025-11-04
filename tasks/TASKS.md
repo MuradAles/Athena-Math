@@ -131,7 +131,7 @@ Each day has clear objectives and deliverables. Tasks are ordered by priority an
   - Created HTTP Cloud Function `/chat` endpoint
   - Initialize OpenAI client with API key from environment
   - Configure for natural conversation:
-    - model: "gpt-4o-mini"
+    - model: "gpt-4o-mini" (text-only) or "gpt-4o" (with images) - smart selection
     - temperature: 0.8
     - frequency_penalty: 0.5
     - presence_penalty: 0.3
@@ -140,7 +140,9 @@ Each day has clear objectives and deliverables. Tasks are ordered by priority an
   - CORS configured for all origins
   - Error handling (console logging only)
   - Context window optimization (last 8 messages)
-  - Basic placeholder prompt (to be replaced in Task 1.17)
+  - Smart model selection: uses gpt-4o for vision (images), gpt-4o-mini for text-only
+  - Support for OpenAI vision format (image content in messages)
+  - Fixed: Removed unsupported parameters for GPT-5, updated to use gpt-4o/gpt-4o-mini
 
 - [x] **Task 1.14:** Create streaming hook with SSE support (1 hour) ✅ COMPLETED
   - `src/hooks/useStreaming.ts`
@@ -208,11 +210,12 @@ Each day has clear objectives and deliverables. Tasks are ordered by priority an
 
 **End of Day 1 Checklist:**
 - [x] Can send message and receive streaming response ✅
-- [ ] AI follows Socratic method (asks, doesn't tell) - Needs Task 1.17 (prompt)
-- [ ] Conversation feels natural and encouraging - Needs Task 1.17 (prompt)
+- [x] AI follows Socratic method (asks, doesn't tell) - Task 1.17 completed ✅
+- [x] Conversation feels natural and encouraging - Task 1.17 completed ✅
 - [ ] Successfully completed 5+ turn conversation - Needs Task 1.18 (testing)
 - [ ] Prompt works on at least 2 problem types - Needs Task 1.18 (testing)
 - [x] No critical bugs in UI or streaming ✅
+- [x] Fixed: Removed unsupported API parameters, using correct models ✅
 
 ---
 
@@ -226,32 +229,135 @@ Each day has clear objectives and deliverables. Tasks are ordered by priority an
 
 ### Morning Session (4-5 hours)
 
-#### Problem Input - Text
-- [ ] **Task 2.1:** Create Problem type definition (15 min)
-  - `src/types/problem.ts`
-  - Define Problem interface
+#### Authentication & Chat History
+**Priority:** Foundation for user data persistence
+
+- [x] **Task 2.1:** Set up Firebase Authentication (30 min) ✅ COMPLETED
+  - Enable Email/Password auth in Firebase Console
+  - Enable Google OAuth provider in Firebase Console
+  - Configure OAuth consent screen
+  - Test authentication flow
+  - Added COOP headers for OAuth popup support
+
+- [x] **Task 2.2:** Create authentication service (45 min) ✅ COMPLETED
+  - `src/services/auth.ts`
+  - Initialize Firebase Auth
+  - Functions: signInWithEmail, signUpWithEmail, signInWithGoogle, signOut
+  - Export auth instance
+  - Error handling
+  - Added redirect fallback for blocked popups
+
+- [x] **Task 2.3:** Create authentication hook (30 min) ✅ COMPLETED
+  - `src/hooks/useAuth.ts`
+  - Use `onAuthStateChanged` to track auth state
+  - Return: user, loading, signIn, signUp, signInWithGoogle, signOut
+  - Handle auth state changes
+  - Integrated redirect result handling
+
+- [x] **Task 2.4:** Build Login component (45 min) ✅ COMPLETED
+  - `src/components/Auth/Login.tsx`
+  - Email/password form
+  - Google OAuth button
+  - Link to signup
+  - Error display
+  - Loading states
+  - Applied design system styling
+
+- [x] **Task 2.5:** Build Signup component (30 min) ✅ COMPLETED
+  - `src/components/Auth/Signup.tsx`
+  - Email/password form
+  - Google OAuth button
+  - Link to login
+  - Error display
+  - Loading states
+  - Applied design system styling
+
+- [x] **Task 2.6:** Create Auth context and provider (30 min) ✅ COMPLETED
+  - `src/contexts/AuthContext.tsx`
+  - Wrap app with AuthProvider
+  - Provide auth state globally
+  - Handle loading state
+
+- [x] **Task 2.7:** Add logout button to top right (20 min) ✅ COMPLETED
+  - Update App.tsx or create Header component
+  - Show user email/name
+  - Logout button in top right
+  - Only show when authenticated
+  - Created Header component with user info
+
+- [x] **Task 2.8:** Create chat type definitions (20 min) ✅ COMPLETED
+  - `src/types/chat.ts`
+  - Define Chat interface (id, userId, title, problem, createdAt, updatedAt, lastMessagePreview)
+  - Define Message interface (already exists, but verify)
   - Export types
 
-- [ ] **Task 2.2:** Build TextInput component (30 min)
-  - `src/components/ProblemInput/TextInput.tsx`
-  - Textarea for problem text
-  - Character counter (500 max)
-  - "Solve Problem" button
-  - Validation
+- [x] **Task 2.9:** Set up Firestore structure and service (30 min) ✅ COMPLETED
+  - `src/services/firestore.ts`
+  - Initialize Firestore
+  - Export db instance
+  - Structure: `users/{userId}/chats/{chatId}`
+  - Update Firestore security rules (users can only read/write their own chats)
+  - Added indexes for efficient queries
+  - Implemented smart chat naming utility
 
-- [ ] **Task 2.3:** Build ProblemDisplay component (20 min)
-  - `src/components/ProblemInput/ProblemDisplay.tsx`
-  - Show current problem being solved
-  - "New Problem" button to reset
-  - Clear visual distinction
+- [x] **Task 2.10:** Create chat management hook (1 hour) ✅ COMPLETED
+  - `src/hooks/useChats.ts`
+  - Function: createChat(userId, problem) → returns chatId
+  - Function: loadChats(userId) → returns list of chats
+  - Function: loadChatMessages(userId, chatId) → returns messages
+  - Function: saveMessage(userId, chatId, message)
+  - Real-time listener for new messages
+  - Smart chat title generation from problem context
+  - Added deleteChat functionality
 
-#### Problem Input - Image
-- [ ] **Task 2.4:** Set up Firebase Storage (30 min)
+- [x] **Task 2.11:** Build ChatList component (45 min) ✅ COMPLETED
+  - `src/components/Chat/ChatList.tsx`
+  - Show list of user's chats
+  - "New Chat" button at top (compact size)
+  - Click chat → load messages
+  - Show chat title, last message preview, timestamp
+  - Highlight active chat
+  - Delete chat functionality with confirmation
+  - Collapsible sidebar with smooth animation
+
+- [x] **Task 2.12:** Integrate chat history into App (30 min) ✅ COMPLETED
+  - Update App.tsx to show ChatList (sidebar or top)
+  - Show ChatContainer for active chat
+  - Handle "New Chat" → create new chat, clear messages
+  - Handle chat selection → load messages
+  - Show login/signup when not authenticated
+  - Centered chat layout (ChatGPT-style)
+  - Custom scrollbar (thumb only, no track)
+
+**Additional Features Completed:**
+- [x] Smart chat naming from problem context
+- [x] Delete chat functionality
+- [x] Collapsible sidebar with animation
+- [x] Centered chat messages and input (768px max-width)
+- [x] Removed input background
+- [x] Custom scrollbar styling
+
+**Mid-Morning Checkpoint:**
+- [x] Users can sign up/login (email + Google) ✅
+- [x] Users can logout ✅
+- [x] Users can create new chat ✅
+- [x] Users can see their chat history ✅
+- [x] Users can switch between chats ✅
+- [x] Messages save to Firestore per chat ✅
+
+---
+
+#### Problem Input - Image Upload (Chat-Based)
+**Note:** Keeping chat-based approach - users type problems directly in chat OR upload images in the same input area.
+
+- [x] **Task 2.13:** Set up Firebase Storage (30 min) ✅ COMPLETED
   - Configure Storage rules in Firebase console
   - Test upload permissions
   - Set up CORS if needed
+  - Created storage.rules with authenticated user permissions
+  - **Note:** Storage needs to be enabled in Firebase Console (go to Storage section and click "Get Started")
 
-- [ ] **Task 2.5:** Create image upload hook (45 min)
+- [x] **Task 2.14:** Create image upload hook (45 min) ✅ COMPLETED
   - `src/hooks/useImageUpload.ts`
   - Handle file selection
   - Validate file type and size (max 5MB)
@@ -259,48 +365,66 @@ Each day has clear objectives and deliverables. Tasks are ordered by priority an
   - Get download URL
   - Track upload progress
   - Error handling
+  - Proper contentType handling for Storage rules
 
-- [ ] **Task 2.6:** Build ImageUpload component (1 hour)
-  - `src/components/ProblemInput/ImageUpload.tsx`
-  - File input (hidden, triggered by button)
-  - Drag and drop area
-  - Image preview
+- [x] **Task 2.15:** Add image upload to InputArea component (1 hour) ✅ COMPLETED
+  - Update `src/components/Chat/InputArea.tsx`
+  - Add image upload button/icon next to send button (📷 icon)
+  - Add file input (hidden, triggered by button)
+  - Support drag and drop for images
+  - Show image preview in chat (before extraction)
   - Upload progress indicator
-  - Cancel upload option
+  - Remove image option
   - Error display
+  - Beautiful preview UI with progress overlay
 
-- [ ] **Task 2.7:** Create math parser service (45 min)
-  - `src/services/mathParser.ts`
+- [x] **Task 2.16:** Create image extraction service (45 min) ✅ COMPLETED
+  - `src/services/imageExtraction.ts`
   - Function to extract problem from image URL
-  - Use GPT-4 Vision API
+  - Use GPT-4 Vision API via Cloud Function (`extractProblem` endpoint)
   - Prompt: "Extract the math problem. Return ONLY the problem text."
   - Handle API errors
   - Validate extracted text
+  - Added `extractProblem` Cloud Function in `functions/src/index.ts`
+  - **NOTE:** Currently not used - images are sent directly to AI without extraction
 
-- [ ] **Task 2.8:** Integrate image upload flow (30 min)
-  - Connect ImageUpload to ChatContainer
-  - Show extracted problem for confirmation
-  - Allow edit before solving
-  - Start conversation with extracted problem
+- [x] **Task 2.17:** Integrate image upload into chat flow (30 min) ✅ COMPLETED
+  - When image uploaded, show preview above input area
+  - Upload image to Firebase Storage
+  - Send image directly to AI (no text extraction)
+  - Images can be sent with or without text
+  - Handle errors gracefully (show error overlay on preview)
+  - Upload progress shown during upload
+  - Images display in chat messages (not as URLs)
+
+- [x] **Task 2.17a:** Display images in chat messages (30 min) ✅ COMPLETED
+  - Updated Message type to include optional `imageUrl` field
+  - Updated Message component to display images instead of URLs
+  - Images render inline in chat messages
+  - Legacy messages with `[Image: ...]` format still supported
+  - Updated Firestore to save/read `imageUrl` field
+  - Added CSS styling for images in messages
+  - Removed Firebase URL text from message display
 
 **Mid-Day Checkpoint:**
-- [ ] Can type problem and start conversation
-- [ ] Can upload image and extract problem
-- [ ] Extraction accuracy tested on 3+ images
-- [ ] Error handling works
+- [x] Can type problem and start conversation ✅
+- [x] Can upload image and send directly to AI ✅
+- [x] Images display properly in chat messages ✅
+- [x] Error handling works ✅
+- [ ] Math rendering (Task 2.18-2.20) - Not started
 
 ---
 
 ### Afternoon Session (4-5 hours)
 
 #### Math Rendering
-- [ ] **Task 2.9:** Create math renderer utility (30 min)
+- [ ] **Task 2.18:** Create math renderer utility (30 min)
   - `src/utils/mathRenderer.ts`
   - Function to detect LaTeX patterns ($...$ and $$...$$)
   - Parse and split text with math
   - Return structured data for rendering
 
-- [ ] **Task 2.10:** Integrate KaTeX into Message (45 min)
+- [ ] **Task 2.19:** Integrate KaTeX into Message (45 min)
   - Update `Message.tsx` component
   - Import react-katex and CSS
   - Use InlineMath for $...$
@@ -308,57 +432,21 @@ Each day has clear objectives and deliverables. Tasks are ordered by priority an
   - Handle rendering errors gracefully
   - Test with various math notations
 
-- [ ] **Task 2.11:** Test math rendering (30 min)
+- [ ] **Task 2.20:** Test math rendering (30 min)
   - Test inline: $2x + 5 = 13$
   - Test block: $$\frac{a}{b}$$
   - Test fractions, exponents, roots
   - Test Greek letters: $\alpha$, $\beta$
   - Verify readability
 
-#### Conversation Persistence
-- [ ] **Task 2.12:** Create chat type definitions (20 min)
-  - `src/types/chat.ts`
-  - Define Conversation interface
-  - Define conversation structure
-  - Add conversationFlow tracking (student confidence, progress)
-
-- [ ] **Task 2.13:** Create Firestore service (30 min)
-  - `src/services/firebase.ts`
-  - Initialize Firestore
-  - Export db instance
-  - Set up collections structure
-
-- [ ] **Task 2.14:** Create Firestore hook with smart context management (1 hour)
-  - `src/hooks/useFirestore.ts`
-  - Function: saveMessage(conversationId, message)
-  - Function: loadMessages(conversationId)
-  - Function: createConversation(problem)
-  - Real-time listener for new messages
-  - Implement smart context: only send last 8 messages to OpenAI (cost optimization)
-  - Track student confidence level for adaptive responses
-  - Error handling
-
-- [ ] **Task 2.15:** Integrate persistence into ChatContainer (45 min)
-  - Generate unique conversation ID on new problem
-  - Save all messages to Firestore
-  - Load conversation history on mount
-  - Update UI in real-time from Firestore
-  - Handle offline scenarios
-
-- [ ] **Task 2.16:** Add conversation history UI (30 min)
-  - Show current conversation ID
-  - "New Conversation" button
-  - Clear conversation option
-  - Confirmation dialog
-
 #### Testing Suite
-- [ ] **Task 2.17:** Create test problems (30 min)
+- [ ] **Task 2.21:** Create test problems (30 min)
   - `src/utils/problemExamples.ts`
   - Add 5+ diverse problems
   - Include expected steps for each
   - Categorize by type
 
-- [ ] **Task 2.18:** Manual testing - Problem Type 1 (20 min)
+- [ ] **Task 2.22:** Manual testing - Problem Type 1 (20 min)
   - **Simple Arithmetic:** "45 + 67 = ?"
   - Have complete conversation
   - Verify AI guidance
@@ -366,33 +454,33 @@ Each day has clear objectives and deliverables. Tasks are ordered by priority an
   - Verify persistence
   - Document any issues
 
-- [ ] **Task 2.19:** Manual testing - Problem Type 2 (20 min)
+- [ ] **Task 2.23:** Manual testing - Problem Type 2 (20 min)
   - **Basic Algebra:** "3x - 7 = 14"
   - Complete conversation (should be 3-4 steps)
   - Test with wrong answers
   - Verify hints appear
   - Document results
 
-- [ ] **Task 2.20:** Manual testing - Problem Type 3 (20 min)
+- [ ] **Task 2.24:** Manual testing - Problem Type 3 (20 min)
   - **Word Problem:** "Sarah has $20. She buys 3 books at $5 each. How much money left?"
   - Test problem understanding
   - Verify step-by-step breakdown
   - Check encouragement
   - Document results
 
-- [ ] **Task 2.21:** Manual testing - Problem Type 4 (20 min)
+- [ ] **Task 2.25:** Manual testing - Problem Type 4 (20 min)
   - **Geometry:** "Find area of triangle with base 6cm, height 4cm"
   - Test formula guidance
   - Verify visual problem solving
   - Document results
 
-- [ ] **Task 2.22:** Manual testing - Problem Type 5 (20 min)
+- [ ] **Task 2.26:** Manual testing - Problem Type 5 (20 min)
   - **Multi-step:** "2(x + 3) = 16"
   - Test order of operations guidance
   - Verify complex reasoning
   - Document results
 
-- [ ] **Task 2.23:** Edge case testing (30 min)
+- [ ] **Task 2.27:** Edge case testing (30 min)
   - Student says "just tell me the answer"
   - Student gives wrong answer 3+ times
   - Student asks off-topic question
@@ -401,20 +489,21 @@ Each day has clear objectives and deliverables. Tasks are ordered by priority an
   - Network disconnection
   - Document all edge case behaviors
 
-- [ ] **Task 2.24:** Bug fixes from testing (1-2 hours)
+- [ ] **Task 2.28:** Bug fixes from testing (1-2 hours)
   - Fix any issues found during testing
   - Improve prompt if needed
   - Adjust UI based on feedback
   - Re-test problem areas
 
 **End of Day 2 Checklist:**
-- [ ] Text input works perfectly
-- [ ] Image upload and extraction works
-- [ ] Math renders correctly in all messages
-- [ ] Conversations persist across page refresh
-- [ ] All 5 problem types tested and working
-- [ ] Edge cases handled gracefully
-- [ ] No critical bugs
+- [x] Text input works perfectly ✅
+- [x] Image upload works (sends directly to AI) ✅
+- [x] Images display in chat messages ✅
+- [ ] Math renders correctly in all messages - Not started (Task 2.18-2.20)
+- [x] Conversations persist across page refresh ✅
+- [ ] All 5 problem types tested and working - Not started
+- [ ] Edge cases handled gracefully - Partially tested
+- [x] No critical bugs ✅
 
 ---
 

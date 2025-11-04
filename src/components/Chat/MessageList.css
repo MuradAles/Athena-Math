@@ -8,12 +8,41 @@
   overflow-x: hidden;
   padding: var(--spacing-md);
   background-color: var(--color-background);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Custom scrollbar - hide track, show only thumb */
+.message-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.message-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.message-list::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.message-list::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Firefox scrollbar */
+.message-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
 
 .message-list__container {
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  width: 100%;
+  max-width: 768px;
 }
 
 .message-list--empty {

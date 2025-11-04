@@ -111,6 +111,7 @@ interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  imageUrl?: string; // Optional image URL for user messages
   timestamp: Date;
 }
 ```
@@ -128,17 +129,38 @@ interface Conversation {
 
 ### Context Window (Sent to OpenAI)
 ```typescript
+// Smart model selection based on content
+const hasImages = messages.some(msg => 
+  Array.isArray(msg.content) && 
+  msg.content.some(item => item.type === 'image_url')
+);
+const model = hasImages ? "gpt-4o" : "gpt-4o-mini";
+
 {
-  model: "gpt-4o-mini", // Current: cost-effective, good for simple math
+  model, // gpt-4o for images, gpt-4o-mini for text-only
   messages: [
     { role: "system", content: NATURAL_PROMPT },
-    ...last8UserAndAssistantMessages
+    ...last8UserAndAssistantMessages.map(msg => ({
+      role: msg.role,
+      content: msg.content // Can be string or array (for images)
+    }))
   ],
   stream: true,
   temperature: 0.8,
   frequency_penalty: 0.5,
   presence_penalty: 0.3,
-  max_tokens: 150
+  // max_tokens: Removed (no limit for flexible explanations)
+}
+```
+
+### Image Content Format (OpenAI Vision)
+```typescript
+{
+  role: "user",
+  content: [
+    { type: "text", text: "What is this problem?" },
+    { type: "image_url", image_url: { url: "https://..." } }
+  ]
 }
 ```
 
@@ -180,18 +202,22 @@ ChatContainer
 ```
 
 **Data Flow:**
-1. User types in InputArea → sends message
-2. ChatContainer manages message state
-3. MessageList displays all messages
-4. Streaming hook updates UI progressively (TODO: Task 1.14)
-5. On completion, streaming message → regular message
+1. User types in InputArea (or uploads image) → sends message
+2. Message saved to Firestore via `useChats.addMessage()`
+3. Firestore subscription updates ChatContainer state in real-time
+4. MessageList displays all messages (including images)
+5. Streaming hook updates UI progressively during AI response
+6. On completion, streaming message → regular message → saved to Firestore
+7. Image URLs stored in Firestore `imageUrl` field, displayed inline in messages
 
 **Current Implementation:**
-- ✅ ChatContainer manages local state with `useState<Message[]>`
+- ✅ ChatContainer manages messages via Firestore subscriptions (`useChats` hook)
 - ✅ MessageList auto-scrolls to bottom on new messages
-- ✅ InputArea handles Enter (send) vs Shift+Enter (new line)
+- ✅ InputArea handles Enter (send) vs Shift+Enter (new line), image upload
 - ✅ Message component displays role-based styling (user right, assistant left)
-- ⏳ Streaming integration pending (Tasks 1.13-1.16)
+- ✅ Message component displays images inline (not as URLs)
+- ✅ Streaming integration complete
+- ✅ Images sent directly to AI in OpenAI vision format
 
 ---
 
@@ -233,5 +259,5 @@ import type { Message as MessageType } from '../../types';
 
 ---
 
-**Document Status:** Architecture patterns established, basic chat UI implemented
+**Document Status:** Architecture patterns established, full functionality implemented with authentication, persistence, and image support
 

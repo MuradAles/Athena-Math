@@ -2,8 +2,26 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+    // Helper function to check if user is authenticated and matches userId
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Users can only read/write their own chats
+    match /users/{userId}/chats/{chatId} {
+      // Allow read/write if authenticated and the userId matches
+      allow read, write: if isOwner(userId);
+      
+      // Messages within a chat
+      match /messages/{messageId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // Allow users to query their own chats collection (for list operations)
+    // This is needed for getDocs() queries on the collection
+    match /users/{userId}/chats {
+      allow read, write: if isOwner(userId);
     }
   }
 }

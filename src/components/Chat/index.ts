@@ -7,4 +7,5 @@ export { MessageList } from './MessageList';
 export { InputArea } from './InputArea';
 export { ChatContainer } from './ChatContainer';
 export { StreamingMessage } from './StreamingMessage';
+export { ChatList } from './ChatList';
 

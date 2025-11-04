@@ -7,6 +7,7 @@ export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  imageUrl?: string; // Optional image URL for user messages
   timestamp: Date;
 }
 

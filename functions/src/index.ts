@@ -82,15 +82,16 @@ export const chat = onRequest(
       }
 
       // Build conversation messages for OpenAI
+      // Support both text and image content (OpenAI vision format)
       const conversationMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
           role: "system",
           content: getSystemPrompt(problem, problemContext),
         },
         // Only send last 8 messages for cost optimization
-        ...messages.slice(-8).map((msg: {role: string; content: string}) => ({
+        ...messages.slice(-8).map((msg: {role: string; content: string | Array<any>}) => ({
           role: msg.role as "user" | "assistant",
-          content: msg.content,
+          content: msg.content, // Can be string or array (for images)
         })),
       ];
 
@@ -102,9 +103,20 @@ export const chat = onRequest(
       // Get OpenAI client (initialized when function is called)
       const openai = getOpenAIClient();
       
+      // Check if any message has image content (for vision support)
+      const hasImages = conversationMessages.some(
+        (msg) => Array.isArray(msg.content) && msg.content.some((item: any) => item.type === 'image_url')
+      );
+      
+      // Use gpt-4o for vision support (images), fallback to gpt-4o-mini for text-only
+      const model = hasImages ? "gpt-4o" : "gpt-4o-mini";
+      
+      logger.info(`Creating OpenAI stream with model: ${model}`);
+      logger.info(`Sending ${conversationMessages.length} messages to OpenAI`);
+      
       // Create OpenAI stream
       const stream = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // Cost-effective model
+        model,
         messages: conversationMessages,
         stream: true,
         temperature: 0.8, // Natural, varied responses
@@ -113,8 +125,12 @@ export const chat = onRequest(
         // No max_tokens limit for flexible explanations
       });
 
+      logger.info("OpenAI stream created, starting to read chunks...");
+
       // Stream response as SSE events
+      let chunkCount = 0;
       for await (const chunk of stream) {
+        chunkCount++;
         const delta = chunk.choices[0]?.delta?.content;
 
         if (delta) {
@@ -122,6 +138,8 @@ export const chat = onRequest(
           res.write(`data: ${JSON.stringify({content: delta})}\n\n`);
         }
       }
+
+      logger.info(`Stream completed. Processed ${chunkCount} chunks.`);
 
       // Send completion event
       res.write(`data: ${JSON.stringify({done: true})}\n\n`);
@@ -138,6 +156,102 @@ export const chat = onRequest(
 
       res.write(`data: ${JSON.stringify({error: errorMessage})}\n\n`);
       res.end();
+    }
+  }
+);
+
+/**
+ * HTTP Cloud Function for extracting math problems from images
+ * 
+ * POST /extract-problem
+ * Body: { imageUrl: string }
+ * 
+ * Returns: { problem: string } - Extracted problem text
+ */
+export const extractProblem = onRequest(
+  {
+    cors: true, // Automatically handles CORS
+    timeoutSeconds: 60,
+    maxInstances: 10,
+  },
+  async (req, res) => {
+    // Handle CORS preflight requests
+    if (req.method === "OPTIONS") {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      res.status(204).end();
+      return;
+    }
+
+    // Set CORS headers for all responses
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    // Only allow POST requests
+    if (req.method !== "POST") {
+      res.status(405).send("Method Not Allowed");
+      return;
+    }
+
+    try {
+      const { imageUrl } = req.body;
+
+      // Validate request body
+      if (!imageUrl || typeof imageUrl !== "string") {
+        res.status(400).send("Invalid request: imageUrl required");
+        return;
+      }
+
+      // Get OpenAI client
+      const openai = getOpenAIClient();
+
+      // Use GPT-4 Vision to extract problem from image
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o", // Use vision-capable model
+        messages: [
+          {
+            role: "system",
+            content: "You are a math problem extractor. Extract the mathematical problem from the image. Return ONLY the problem text, nothing else. If there are multiple problems, extract the main one. Preserve mathematical notation exactly as shown.",
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: {
+                  url: imageUrl,
+                },
+              },
+              {
+                type: "text",
+                text: "Extract the math problem from this image. Return only the problem statement, preserving all mathematical notation.",
+              },
+            ],
+          },
+        ],
+        max_tokens: 500,
+      });
+
+      const extractedProblem = response.choices[0]?.message?.content?.trim() || "";
+
+      if (!extractedProblem) {
+        res.status(400).send("Could not extract problem from image");
+        return;
+      }
+
+      // Return extracted problem
+      res.json({ problem: extractedProblem });
+      logger.info("Problem extracted successfully");
+    } catch (error) {
+      logger.error("Error in extractProblem function:", error);
+
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "An unknown error occurred";
+
+      res.status(500).json({ error: errorMessage });
     }
   }
 );

@@ -1,12 +1,24 @@
 /**
  * ChatContainer component styles
+ * Uses design system variables
  */
 
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   width: 100%;
   background-color: var(--color-background);
+  align-items: center;
+}
+
+.chat-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
 }
 

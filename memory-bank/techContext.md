@@ -1,7 +1,7 @@
 # Tech Context
 ## Technologies & Setup
 
-**Last Updated:** November 3, 2025
+**Last Updated:** November 4, 2025
 
 ---
 
@@ -28,10 +28,13 @@
 - **Vercel or Render** - Frontend hosting (NOT Firebase Hosting)
 
 ### AI Services
-- **OpenAI GPT-4o-mini** - Conversations (current, cost-effective, ~$0.002/conversation)
-  - **Issue:** Sometimes affirms wrong answers on complex math problems
-  - **Future:** Consider switching to GPT-5-mini or GPT-4o when finishing project
-- **OpenAI GPT-4o** - Image extraction only (vision, ~$0.01/image)
+- **Smart Model Selection** - Automatically selects based on content:
+  - **OpenAI GPT-4o-mini** - Text-only conversations (cost-effective, ~$0.002/conversation)
+    - No organization verification required for streaming
+    - Used when messages contain only text
+  - **OpenAI GPT-4o** - Messages with images (vision support, requires organization verification)
+    - Used when messages contain images (OpenAI vision format)
+    - Also used for image extraction (`extractProblem` function, currently not used)
 
 ### Model Selection (Future Improvement)
 **Current:** GPT-4o-mini
@@ -77,12 +80,13 @@ athena/
 
 **Frontend (.env):**
 ```bash
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
+VITE_API_KEY=              # Firebase API Key
+VITE_AUTH_DOMAIN=          # Firebase Auth Domain
+VITE_PROJECT_ID=           # Firebase Project ID
+VITE_STORAGE_BUCKET=       # Firebase Storage Bucket
+VITE_MESSAGING_SENDER_ID=  # Firebase Messaging Sender ID
+VITE_APP_ID=              # Firebase App ID
+VITE_USE_FUNCTIONS_EMULATOR=false  # Use production functions by default
 ```
 
 **Functions (.env - server-side):**
@@ -119,13 +123,20 @@ OPENAI_API_KEY=         # Stays secret, never exposed to client
 
 ### OpenAI Settings
 ```typescript
+// Smart model selection
+const hasImages = conversationMessages.some(
+  msg => Array.isArray(msg.content) && 
+  msg.content.some(item => item.type === 'image_url')
+);
+const model = hasImages ? "gpt-4o" : "gpt-4o-mini";
+
 {
-  model: "gpt-4o-mini",      // For conversations
-  temperature: 0.8,           // Natural, varied responses
-  frequency_penalty: 0.5,    // Reduces repetition
-  presence_penalty: 0.3,     // Encourages variety
-  max_tokens: 150,           // Concise tutor responses
-  stream: true               // Real-time responses
+  model,                    // gpt-4o for images, gpt-4o-mini for text-only
+  temperature: 0.8,         // Natural, varied responses
+  frequency_penalty: 0.5,   // Reduces repetition
+  presence_penalty: 0.3,    // Encourages variety
+  // max_tokens: Removed (no limit for flexible explanations)
+  stream: true              // Real-time responses
 }
 ```
 
@@ -136,8 +147,17 @@ OPENAI_API_KEY=         # Stays secret, never exposed to client
 
 ### Firebase Setup
 - **Firestore:** Real-time listeners for conversations
-- **Storage:** Image upload with 5MB max, public read/write rules
-- **Functions:** Node.js 18 runtime, us-central1 region (default)
+  - Structure: `users/{userId}/chats/{chatId}/messages/{messageId}`
+  - Security rules: Users can only read/write their own data
+  - Indexes: `updatedAt` field for efficient queries
+- **Storage:** Image upload with 5MB max, authenticated user access only
+  - Path: `users/{userId}/images/{imageId}`
+  - Rules: Users can upload and read their own images
+  - Content type validation (image/* only)
+- **Functions:** Node.js 22 runtime, us-central1 region (default)
+  - Production deployment (not emulator)
+  - CORS enabled for all origins
+  - Environment variables loaded from `.env` file
 
 ---
 
@@ -153,8 +173,16 @@ firebase emulators:start  # Local Firebase emulators
 ```bash
 npm run build            # Frontend build (output: dist/)
 firebase deploy --only functions  # Deploy Cloud Functions
+firebase deploy --only firestore:rules  # Deploy Firestore rules
+firebase deploy --only storage:rules     # Deploy Storage rules
 # Deploy dist/ to Vercel or Render
 ```
+
+### Key Deployment Notes
+- **Cloud Functions:** Use production URLs by default (`VITE_USE_FUNCTIONS_EMULATOR=false`)
+- **Functions:** Deployed with `cors: true` for CORS handling
+- **Storage Rules:** Must be deployed separately (`firebase deploy --only storage:rules`)
+- **Firestore Rules:** Must be deployed separately (`firebase deploy --only firestore:rules`)
 
 ---
 
@@ -195,12 +223,13 @@ firebase deploy --only functions  # Deploy Cloud Functions
 ## Security Considerations
 
 - ✅ API keys in Cloud Functions (server-side only)
-- ✅ Firestore security rules (validate user access)
-- ✅ Storage rules (validate file types and sizes)
-- ✅ CORS configuration for API calls
-- ⚠️ No user authentication (public demo)
+- ✅ Firestore security rules (users can only access their own data)
+- ✅ Storage rules (users can only upload/read their own images, 5MB max, image/* only)
+- ✅ CORS configuration for API calls (Cloud Functions)
+- ✅ User authentication (Email/Password + Google OAuth)
+- ✅ Cross-Origin-Opener-Policy headers for OAuth popups
 
 ---
 
-**Document Status:** Tech stack confirmed and ready
+**Document Status:** Tech stack confirmed, deployed, and working in production
 

@@ -1,12 +1,56 @@
 # Active Context
 ## Current Work Focus
 
-**Last Updated:** November 3, 2025  
-**Current Phase:** Day 1 - Core Chat Interface & Socratic Dialogue
+**Last Updated:** November 4, 2025  
+**Current Phase:** Day 2 Complete - Full Functionality & Persistence
 
 ---
 
 ## What We Just Completed
+
+### ✅ Day 2: Authentication & Chat History (COMPLETED)
+- **Task 2.1-2.7:** Firebase Authentication setup (Email/Password + Google OAuth)
+  - Created auth service with redirect fallback for blocked popups
+  - Added COOP headers for OAuth support
+  - Login/Signup components with design system styling
+  - Auth context provider for global state
+  - Header component with user info and logout
+- **Task 2.8-2.12:** Chat persistence and history
+  - Firestore structure: `users/{userId}/chats/{chatId}`
+  - Smart chat naming from problem context
+  - ChatList component with collapsible sidebar
+  - Delete chat functionality
+  - Real-time message subscriptions
+  - Centered chat layout (ChatGPT-style)
+  - Custom scrollbar styling
+
+### ✅ Day 2: Image Upload & Display (COMPLETED)
+- **Task 2.13-2.15:** Image upload functionality
+  - Firebase Storage rules deployed
+  - Image upload hook with progress tracking
+  - InputArea component with image upload button
+  - Drag-and-drop support
+  - Image preview above input area
+- **Task 2.16-2.17:** Image extraction service (created but not used)
+  - `extractProblem` Cloud Function using GPT-4o Vision
+  - Image extraction service ready
+  - **NOTE:** Currently not used - images sent directly to AI
+- **Task 2.17a:** Image display in messages (NEW)
+  - Updated Message type to include optional `imageUrl` field
+  - Message component displays images inline (not as URLs)
+  - Firestore saves/reads `imageUrl` field
+  - Legacy messages with `[Image: ...]` format still supported
+  - CSS styling for images in messages
+
+### ✅ Day 1: OpenAI Integration & Streaming (COMPLETED)
+- **Task 1.13:** OpenAI Cloud Function with SSE streaming
+  - Smart model selection: `gpt-4o` for images, `gpt-4o-mini` for text-only
+  - Support for OpenAI vision format (image content in messages)
+  - Fixed unsupported parameters (removed frequency_penalty/presence_penalty for GPT-5)
+- **Task 1.14:** Streaming hook with detailed error logging
+- **Task 1.15:** StreamingMessage component
+- **Task 1.16:** Streaming integration complete
+- **Task 1.17:** Natural conversational Socratic prompt (COMPLETED)
 
 ### ✅ Tasks 1.8-1.12: Basic Chat UI Components
 - **Task 1.8:** Created Message type definition (`src/types/message.ts`)
@@ -64,36 +108,33 @@
 
 ## Current Status
 
-**Session:** Basic chat UI complete, ready for OpenAI integration  
-**Next Tasks:** OpenAI service and streaming (Tasks 1.13-1.16)
+**Session:** Day 2 complete - Authentication, chat history, and image upload working  
+**Next Tasks:** Math rendering (Tasks 2.18-2.20), testing (Tasks 2.21-2.28)
 
 ---
 
 ## What We're Working On Now
 
-### Next Immediate Steps (Tasks 1.13-1.16)
+### Next Immediate Steps (Day 2 - Afternoon Session)
 
-1. **Task 1.13:** Create OpenAI service with optimal settings
-   - `src/services/openai.ts` (or Cloud Functions)
-   - Initialize OpenAI client
-   - Configure natural conversation settings
-   - Add error handling
+1. **Task 2.18:** Create math renderer utility
+   - `src/utils/mathRenderer.ts`
+   - Detect LaTeX patterns ($...$ and $$...$$)
+   - Parse and split text with math
 
-2. **Task 1.14:** Create streaming hook
-   - `src/hooks/useStreaming.ts`
-   - Implement streaming state
-   - Process stream chunks token by token
-   - Handle completion and errors
+2. **Task 2.19:** Integrate KaTeX into Message component
+   - Update `Message.tsx` to render math
+   - Use InlineMath for $...$
+   - Use BlockMath for $$...$$
 
-3. **Task 1.15:** Build StreamingMessage component
-   - `src/components/Chat/StreamingMessage.tsx`
-   - Display streaming text with cursor
-   - Show "Tutor is thinking..." indicator
+3. **Task 2.20:** Test math rendering
+   - Test various math notations
+   - Verify readability
 
-4. **Task 1.16:** Integrate streaming into ChatContainer
-   - Use useStreaming hook
-   - Show StreamingMessage during AI response
-   - Convert to regular message on completion
+4. **Task 2.21-2.27:** Manual testing suite
+   - Test 5 problem types
+   - Edge case testing
+   - Bug fixes
 
 ---
 
@@ -102,11 +143,12 @@
 ### Architecture
 - ✅ **OpenAI SDK Direct** (not LangChain) - simpler, smaller, better streaming
 - ✅ **Firebase Cloud Functions** - for secure API key handling
-- ✅ **GPT-4o-mini** - for conversations (current, cost-effective)
-  - **Known Issue:** Sometimes affirms wrong answers on complex math
-  - **Future:** Consider GPT-5-mini or GPT-4o when finishing project
-- ✅ **GPT-4o** - for image extraction only (vision required)
-- ✅ **Hosting:** Vercel or Render (not Firebase Hosting)
+- ✅ **Smart Model Selection** - automatically selects model based on content:
+  - **GPT-4o-mini** - for text-only conversations (cost-effective)
+  - **GPT-4o** - for messages with images (vision support)
+  - Automatically detects image content and switches models
+- ✅ **GPT-4o** - for image extraction (`extractProblem` function, currently not used)
+- ✅ **Hosting:** Production Cloud Functions (not emulator)
 - ✅ **Services:** Firebase (Firestore + Storage + Cloud Functions)
 
 ### Model Selection Decision
@@ -120,7 +162,8 @@
 ### Conversation Management
 - **Context Window:** Only last 8 messages to OpenAI (cost optimization)
 - **Natural Settings:** temperature: 0.8, frequency_penalty: 0.5, presence_penalty: 0.3
-- **Max Tokens:** 150 (concise tutor-like responses)
+- **Max Tokens:** Removed (no limit for flexible explanations)
+- **Image Support:** Images sent directly to AI in OpenAI vision format (no text extraction)
 
 ### Priority Focus
 - **#1 Priority:** Natural conversational prompt (not robotic Q&A)
@@ -138,14 +181,24 @@
 ## Today's Goal (Day 1)
 
 **End of Day 1 Checklist:**
-- [ ] Can send message and receive streaming response
-- [ ] AI follows Socratic method (asks, doesn't tell)
-- [ ] Conversation feels natural and encouraging
-- [ ] Successfully completed 5+ turn conversation
-- [ ] Prompt works on at least 2 problem types
-- [ ] No critical bugs in UI or streaming
+- [x] Can send message and receive streaming response ✅
+- [x] AI follows Socratic method (asks, doesn't tell) ✅
+- [x] Conversation feels natural and encouraging ✅
+- [ ] Successfully completed 5+ turn conversation - Needs testing (Task 1.18)
+- [ ] Prompt works on at least 2 problem types - Needs testing (Task 1.18)
+- [x] No critical bugs in UI or streaming ✅
+
+**End of Day 2 Checklist:**
+- [x] Text input works perfectly ✅
+- [x] Image upload works (sends directly to AI) ✅
+- [x] Images display in chat messages ✅
+- [ ] Math renders correctly in all messages - Not started (Task 2.18-2.20)
+- [x] Conversations persist across page refresh ✅
+- [ ] All 5 problem types tested and working - Not started
+- [ ] Edge cases handled gracefully - Partially tested
+- [x] No critical bugs ✅
 
 ---
 
-**Document Status:** Active development - Day 1 morning complete, afternoon session starting
+**Document Status:** Day 2 complete - Authentication, chat history, and image upload working. Ready for math rendering and testing.
 

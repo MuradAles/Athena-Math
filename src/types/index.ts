@@ -4,4 +4,5 @@
  */
 
 export type { Message, MessageRole } from './message';
+export type { Chat, ChatWithMessages } from './chat';
 
