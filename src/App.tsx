@@ -3,11 +3,11 @@
  * Main application entry point with authentication and chat management
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { AuthProvider, useAuthContext } from './contexts/AuthContext';
 import { Login, Signup } from './components/Auth';
 import { Header } from './components/Common/Header';
-import { ChatList, ChatContainer } from './components/Chat';
+import { ChatList, ChatContainer, type ChatContainerRef } from './components/Chat';
 import { WhiteboardPanel } from './components/Whiteboard';
 import { useChats } from './hooks/useChats';
 import './App.css';
@@ -19,6 +19,7 @@ const AppContent = () => {
   const [showSignup, setShowSignup] = useState(false);
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
   const [whiteboardWidth, setWhiteboardWidth] = useState(400);
+  const chatContainerRef = useRef<ChatContainerRef | null>(null);
 
   // Show loading state while checking auth
   if (authLoading) {
@@ -56,6 +57,7 @@ const AppContent = () => {
         <ChatList activeChatId={currentChatId} onSelectChat={handleSelectChat} />
         <div className="app-chat-area">
           <ChatContainer 
+            ref={chatContainerRef}
             chatId={currentChatId} 
           />
         </div>
@@ -91,6 +93,12 @@ const AppContent = () => {
                 chatId={currentChatId}
                 width={whiteboardWidth}
                 onClose={() => setIsWhiteboardOpen(false)}
+                onSendCanvas={(imageUrl, message) => {
+                  // Send canvas image to chat
+                  if (chatContainerRef.current?.sendMessage) {
+                    chatContainerRef.current.sendMessage(message || 'Here is my whiteboard:', imageUrl);
+                  }
+                }}
               />
             </div>
           )}

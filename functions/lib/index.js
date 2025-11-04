@@ -3,6 +3,39 @@
  * Firebase Cloud Functions for AI Math Tutor
  * Handles OpenAI API calls with SSE streaming
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __asyncValues = (this && this.__asyncValues) || function (o) {
     if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
     var m = o[Symbol.asyncIterator], i;
@@ -19,6 +52,8 @@ const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
 const openai_1 = __importDefault(require("openai"));
 const prompts_1 = require("./utils/prompts");
+const mathToolSchemas_1 = require("./utils/mathToolSchemas");
+const mathTools = __importStar(require("./utils/mathTools"));
 // Initialize OpenAI client lazily (when function is called)
 // This ensures environment variables are loaded
 function getOpenAIClient() {
@@ -45,6 +80,65 @@ function getSystemPrompt(problem, problemContext) {
     return prompt;
 }
 /**
+ * Execute math tool function based on function name and arguments
+ */
+async function executeMathTool(functionName, args) {
+    try {
+        v2_1.logger.info(`Executing math tool: ${functionName} with args: ${JSON.stringify(args)}`);
+        switch (functionName) {
+            // Algebra tools
+            case "solve_linear_equation":
+                return mathTools.solveLinearEquation(args.equation, args.variable);
+            case "solve_quadratic_equation":
+                return mathTools.solveQuadraticEquation(args.equation, args.variable);
+            case "factor_expression":
+                return mathTools.factorExpression(args.expression);
+            case "expand_expression":
+                return mathTools.expandExpression(args.expression);
+            case "simplify_expression":
+                return mathTools.simplifyExpression(args.expression);
+            case "solve_system_of_equations":
+                return mathTools.solveSystemOfEquations(args.equations, args.variables);
+            // Geometry tools
+            case "calculate_area":
+                return mathTools.calculateArea(args.shape, args.dimensions);
+            case "calculate_volume":
+                return mathTools.calculateVolume(args.shape, args.dimensions);
+            case "calculate_perimeter":
+                return mathTools.calculatePerimeter(args.shape, args.dimensions);
+            case "calculate_surface_area":
+                return mathTools.calculateSurfaceArea(args.shape, args.dimensions);
+            case "solve_pythagorean_theorem":
+                return mathTools.solvePythagoreanTheorem(args);
+            // Calculus tools
+            case "calculate_derivative":
+                return mathTools.calculateDerivative(args.expression, args.variable);
+            case "calculate_integral":
+                return mathTools.calculateIntegral(args.expression, args.variable, args.lower, args.upper);
+            case "calculate_limit":
+                return mathTools.calculateLimit(args.expression, args.variable, args.approaches);
+            // Arithmetic tools
+            case "evaluate_expression":
+                return mathTools.evaluateExpression(args.expression);
+            case "calculate_percentage":
+                return mathTools.calculatePercentage(args);
+            // Validation tools
+            case "validate_answer":
+                return mathTools.validateAnswer(args.problem, args.student_answer, args.problem_type);
+            case "check_step":
+                return mathTools.checkStep(args.previous_step, args.current_step, args.operation);
+            default:
+                throw new Error(`Unknown math tool: ${functionName}`);
+        }
+    }
+    catch (error) {
+        v2_1.logger.error(`Error executing math tool ${functionName}:`, error);
+        return {
+            error: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+    }
+}
+/**
  * HTTP Cloud Function for chat completion with SSE streaming
  *
  * POST /chat
@@ -57,8 +151,8 @@ exports.chat = (0, https_1.onRequest)({
     timeoutSeconds: 300,
     maxInstances: 10,
 }, async (req, res) => {
-    var _a, e_1, _b, _c;
-    var _d, _e;
+    var _a, e_1, _b, _c, _d, e_2, _e, _f;
+    var _g, _h, _j, _k, _l, _m, _o, _p, _q;
     // Set CORS headers
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -105,10 +199,11 @@ exports.chat = (0, https_1.onRequest)({
         const model = hasImages ? "gpt-4o" : "gpt-4o-mini";
         v2_1.logger.info(`Creating OpenAI stream with model: ${model}`);
         v2_1.logger.info(`Sending ${conversationMessages.length} messages to OpenAI`);
-        // Create OpenAI stream
+        // Create OpenAI stream with tools
         const stream = await openai.chat.completions.create({
             model,
             messages: conversationMessages,
+            tools: mathToolSchemas_1.MATH_TOOL_SCHEMAS,
             stream: true,
             temperature: 0.8, // Natural, varied responses
             frequency_penalty: 0.5, // Reduces repetition
@@ -118,14 +213,41 @@ exports.chat = (0, https_1.onRequest)({
         v2_1.logger.info("OpenAI stream created, starting to read chunks...");
         // Stream response as SSE events
         let chunkCount = 0;
+        let functionCallName = "";
+        let functionCallArgs = "";
+        let accumulatedContent = "";
+        let finishReason = "";
+        let toolCallId = "";
         try {
-            for (var _f = true, stream_1 = __asyncValues(stream), stream_1_1; stream_1_1 = await stream_1.next(), _a = stream_1_1.done, !_a; _f = true) {
+            for (var _r = true, stream_1 = __asyncValues(stream), stream_1_1; stream_1_1 = await stream_1.next(), _a = stream_1_1.done, !_a; _r = true) {
                 _c = stream_1_1.value;
-                _f = false;
+                _r = false;
                 const chunk = _c;
                 chunkCount++;
-                const delta = (_e = (_d = chunk.choices[0]) === null || _d === void 0 ? void 0 : _d.delta) === null || _e === void 0 ? void 0 : _e.content;
+                const choice = chunk.choices[0];
+                // Check finish reason
+                if (choice === null || choice === void 0 ? void 0 : choice.finish_reason) {
+                    finishReason = choice.finish_reason;
+                }
+                // Handle function calls
+                if ((_g = choice === null || choice === void 0 ? void 0 : choice.delta) === null || _g === void 0 ? void 0 : _g.tool_calls) {
+                    const toolCall = (_h = choice.delta.tool_calls) === null || _h === void 0 ? void 0 : _h[0];
+                    if (toolCall) {
+                        if (toolCall.id) {
+                            toolCallId = toolCall.id;
+                        }
+                        if ((_j = toolCall.function) === null || _j === void 0 ? void 0 : _j.name) {
+                            functionCallName = toolCall.function.name;
+                        }
+                        if ((_k = toolCall.function) === null || _k === void 0 ? void 0 : _k.arguments) {
+                            functionCallArgs += toolCall.function.arguments;
+                        }
+                    }
+                }
+                // Handle content
+                const delta = (_l = choice === null || choice === void 0 ? void 0 : choice.delta) === null || _l === void 0 ? void 0 : _l.content;
                 if (delta) {
+                    accumulatedContent += delta;
                     // Send SSE format: data: {content}\n\n
                     res.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
                 }
@@ -134,11 +256,80 @@ exports.chat = (0, https_1.onRequest)({
         catch (e_1_1) { e_1 = { error: e_1_1 }; }
         finally {
             try {
-                if (!_f && !_a && (_b = stream_1.return)) await _b.call(stream_1);
+                if (!_r && !_a && (_b = stream_1.return)) await _b.call(stream_1);
             }
             finally { if (e_1) throw e_1.error; }
         }
-        v2_1.logger.info(`Stream completed. Processed ${chunkCount} chunks.`);
+        v2_1.logger.info(`Stream completed. Processed ${chunkCount} chunks. Finish reason: ${finishReason}`);
+        // Handle function calls if detected
+        if (finishReason === "tool_calls" && functionCallName && functionCallArgs) {
+            try {
+                v2_1.logger.info(`Function call detected: ${functionCallName} with args: ${functionCallArgs}`);
+                // Parse function arguments
+                const args = JSON.parse(functionCallArgs);
+                // Execute function
+                const functionResult = await executeMathTool(functionCallName, args);
+                // Use actual tool call ID or generate one
+                const actualToolCallId = toolCallId || `call_${Date.now()}`;
+                // Add function result to conversation
+                conversationMessages.push({
+                    role: "assistant",
+                    content: accumulatedContent || null,
+                    tool_calls: [{
+                            id: actualToolCallId,
+                            type: "function",
+                            function: {
+                                name: functionCallName,
+                                arguments: functionCallArgs,
+                            },
+                        }],
+                });
+                conversationMessages.push({
+                    role: "tool",
+                    tool_call_id: actualToolCallId,
+                    content: JSON.stringify(functionResult),
+                });
+                // Continue streaming with function result
+                v2_1.logger.info("Continuing stream with function result...");
+                const continueStream = await openai.chat.completions.create({
+                    model,
+                    messages: conversationMessages,
+                    tools: mathToolSchemas_1.MATH_TOOL_SCHEMAS,
+                    stream: true,
+                    temperature: 0.8,
+                    frequency_penalty: 0.5,
+                    presence_penalty: 0.3,
+                });
+                try {
+                    // Stream the continued response
+                    for (var _s = true, continueStream_1 = __asyncValues(continueStream), continueStream_1_1; continueStream_1_1 = await continueStream_1.next(), _d = continueStream_1_1.done, !_d; _s = true) {
+                        _f = continueStream_1_1.value;
+                        _s = false;
+                        const chunk = _f;
+                        const delta = (_o = (_m = chunk.choices[0]) === null || _m === void 0 ? void 0 : _m.delta) === null || _o === void 0 ? void 0 : _o.content;
+                        if (delta) {
+                            res.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
+                        }
+                        // Check for additional function calls (recursive handling)
+                        if ((_q = (_p = chunk.choices[0]) === null || _p === void 0 ? void 0 : _p.delta) === null || _q === void 0 ? void 0 : _q.tool_calls) {
+                            // For simplicity, we'll handle one level of function calls
+                            // Multiple nested calls would need more complex handling
+                        }
+                    }
+                }
+                catch (e_2_1) { e_2 = { error: e_2_1 }; }
+                finally {
+                    try {
+                        if (!_s && !_d && (_e = continueStream_1.return)) await _e.call(continueStream_1);
+                    }
+                    finally { if (e_2) throw e_2.error; }
+                }
+            }
+            catch (error) {
+                v2_1.logger.error(`Error handling function call: ${error}`);
+                res.write(`data: ${JSON.stringify({ error: `Function call error: ${error}` })}\n\n`);
+            }
+        }
         // Send completion event
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         res.end();

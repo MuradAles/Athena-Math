@@ -18,7 +18,7 @@
 
 .streaming-content {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--spacing-xs);
 }
 
@@ -33,6 +33,28 @@
   color: var(--color-text);
   white-space: pre-wrap;
   word-wrap: break-word;
+  line-height: var(--line-height-normal);
+  flex: 1;
+}
+
+/* KaTeX math rendering styles (same as Message component) */
+.streaming-text .katex {
+  font-size: 1.1em;
+}
+
+.streaming-text .katex-display {
+  margin: var(--spacing-sm) 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Ensure inline math doesn't break line flow */
+.streaming-text .katex-display > .katex {
+  text-align: left;
+}
+
+/* Reduce spacing between lines within messages */
+.streaming-text br {
   line-height: var(--line-height-normal);
 }
 

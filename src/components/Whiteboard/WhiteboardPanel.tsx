@@ -6,12 +6,15 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Canvas, PencilBrush, Rect, Circle, IText, Path } from 'fabric';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { useImageUpload } from '../../hooks/useImageUpload';
 import './WhiteboardPanel.css';
 
 interface WhiteboardPanelProps {
   chatId: string | null;
   width?: number;
   onClose?: () => void;
+  onSendCanvas?: (imageUrl: string, message?: string) => void;
 }
 
 type Tool = 'pen' | 'eraser' | 'rectangle' | 'circle' | 'text' | 'select';
@@ -20,6 +23,7 @@ export const WhiteboardPanel = ({
   chatId,
   width = 400,
   onClose,
+  onSendCanvas,
 }: WhiteboardPanelProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<Canvas | null>(null);
@@ -28,6 +32,12 @@ export const WhiteboardPanel = ({
   const [brushColor, setBrushColor] = useState('#000000');
   const [brushWidth, setBrushWidth] = useState(3);
   const brushWidthRef = useRef(brushWidth); // Ref to track brush width for eraser
+  const [eraserPreview, setEraserPreview] = useState<{ x: number; y: number } | null>(null);
+  const eraserPreviewCircleRef = useRef<Circle | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const backgroundImageRef = useRef<any>(null); // Fabric.js Image object
+  const { user } = useAuthContext();
+  const { uploadImage, isUploading: isUploadingCanvas } = useImageUpload();
 
   // Initialize Fabric.js canvas (only once)
   useEffect(() => {
@@ -112,9 +122,52 @@ export const WhiteboardPanel = ({
     // Eraser functionality: remove objects on mouse move
     let isErasing = false;
     
+    // Calculate eraser radius
+    const getEraserRadius = () => brushWidthRef.current * 2;
+    
+    // Show eraser preview circle
+    const showEraserPreview = (pointer: { x: number; y: number }) => {
+      if (!canvas) return;
+      const eraserRadius = getEraserRadius();
+      
+      // Remove existing preview if any
+      if (eraserPreviewCircleRef.current) {
+        canvas.remove(eraserPreviewCircleRef.current);
+      }
+      
+      // Create preview circle
+      const previewCircle = new Circle({
+        left: pointer.x,
+        top: pointer.y,
+        radius: eraserRadius,
+        fill: 'rgba(255, 0, 0, 0.1)',
+        stroke: 'rgba(255, 0, 0, 0.5)',
+        strokeWidth: 2,
+        originX: 'center',
+        originY: 'center',
+        selectable: false,
+        evented: false,
+        excludeFromExport: true,
+      });
+      
+      canvas.add(previewCircle);
+      canvas.renderAll();
+      eraserPreviewCircleRef.current = previewCircle;
+    };
+    
+    // Hide eraser preview circle
+    const hideEraserPreview = () => {
+      if (!canvas) return;
+      if (eraserPreviewCircleRef.current) {
+        canvas.remove(eraserPreviewCircleRef.current);
+        canvas.renderAll();
+        eraserPreviewCircleRef.current = null;
+      }
+    };
+    
     const handleEraserMouseDown = (e: fabric.IEvent<MouseEvent>) => {
       const pointer = canvas.getPointer(e.e);
-      const eraserRadius = brushWidthRef.current * 2; // Dynamic eraser size
+      const eraserRadius = getEraserRadius();
       const objectsToRemove: fabric.Object[] = [];
       
       // Check all objects to see if they intersect with eraser area
@@ -141,10 +194,17 @@ export const WhiteboardPanel = ({
     };
     
     const handleEraserMouseMove = (e: fabric.IEvent<MouseEvent>) => {
+      const pointer = canvas.getPointer(e.e);
+      
+      // Show preview when hovering (not erasing)
+      if (!isErasing && activeToolRef.current === 'eraser') {
+        showEraserPreview(pointer);
+        setEraserPreview({ x: pointer.x, y: pointer.y });
+      }
+      
       if (!isErasing) return;
       
-      const pointer = canvas.getPointer(e.e);
-      const eraserRadius = brushWidthRef.current * 2; // Dynamic eraser size
+      const eraserRadius = getEraserRadius();
       const objectsToRemove: fabric.Object[] = [];
       
       // Check all objects to see if they intersect with eraser area
@@ -172,18 +232,20 @@ export const WhiteboardPanel = ({
     
     const handleEraserMouseUp = () => {
       isErasing = false;
+      // Preview will be shown again on next mouse move
     };
     
     // Store eraser handlers - check activeToolRef for current tool
     const eraserMouseDownHandler = (e: fabric.IEvent<MouseEvent>) => {
       if (activeToolRef.current === 'eraser') {
+        hideEraserPreview(); // Hide preview when starting to erase
         isErasing = true;
         handleEraserMouseDown(e);
       }
     };
     
     const eraserMouseMoveHandler = (e: fabric.IEvent<MouseEvent>) => {
-      if (activeToolRef.current === 'eraser' && isErasing) {
+      if (activeToolRef.current === 'eraser') {
         handleEraserMouseMove(e);
       }
     };
@@ -194,9 +256,18 @@ export const WhiteboardPanel = ({
       }
     };
     
+    // Handle mouse leave to hide preview
+    const eraserMouseOutHandler = () => {
+      if (activeToolRef.current === 'eraser') {
+        hideEraserPreview();
+        setEraserPreview(null);
+      }
+    };
+    
     canvas.on('mouse:down', eraserMouseDownHandler);
     canvas.on('mouse:move', eraserMouseMoveHandler);
     canvas.on('mouse:up', eraserMouseUpHandler);
+    canvas.on('mouse:out', eraserMouseOutHandler);
 
     // Handle Backspace/Delete for deleting selected objects
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -219,6 +290,8 @@ export const WhiteboardPanel = ({
         canvas.off('mouse:down', eraserMouseDownHandler);
         canvas.off('mouse:move', eraserMouseMoveHandler);
         canvas.off('mouse:up', eraserMouseUpHandler);
+        canvas.off('mouse:out', eraserMouseOutHandler);
+        hideEraserPreview();
         fabricCanvasRef.current.dispose();
         fabricCanvasRef.current = null;
       }
@@ -238,7 +311,14 @@ export const WhiteboardPanel = ({
       canvas.freeDrawingBrush.width = brushWidth;
     }
     brushWidthRef.current = brushWidth; // Update ref for eraser
-  }, [brushColor, brushWidth]);
+    
+    // Update eraser preview circle if it exists and eraser is active
+    if (activeTool === 'eraser' && eraserPreviewCircleRef.current) {
+      const eraserRadius = brushWidth * 2;
+      eraserPreviewCircleRef.current.set({ radius: eraserRadius });
+      canvas.renderAll();
+    }
+  }, [brushColor, brushWidth, activeTool]);
 
   // Update canvas size when width changes (but don't recreate)
   useEffect(() => {
@@ -265,6 +345,14 @@ export const WhiteboardPanel = ({
     if (!fabricCanvasRef.current) return;
 
     const canvas = fabricCanvasRef.current;
+    
+    // Hide eraser preview when switching away from eraser
+    if (tool !== 'eraser' && eraserPreviewCircleRef.current) {
+      canvas.remove(eraserPreviewCircleRef.current);
+      canvas.renderAll();
+      eraserPreviewCircleRef.current = null;
+    }
+    
     setActiveTool(tool);
     activeToolRef.current = tool; // Update ref immediately
 
@@ -281,6 +369,12 @@ export const WhiteboardPanel = ({
         canvas.isDrawingMode = false;
         canvas.selection = false;
         // Eraser mode: remove objects on click/drag
+        // Hide preview when switching to eraser (will show on mouse move)
+        if (eraserPreviewCircleRef.current) {
+          canvas.remove(eraserPreviewCircleRef.current);
+          canvas.renderAll();
+          eraserPreviewCircleRef.current = null;
+        }
         break;
 
       case 'select':
@@ -361,9 +455,127 @@ export const WhiteboardPanel = ({
     if (confirm('Clear the entire canvas? This will remove all drawings.')) {
       fabricCanvasRef.current.clear();
       fabricCanvasRef.current.backgroundColor = '#ffffff';
+      backgroundImageRef.current = null;
       fabricCanvasRef.current.renderAll();
     }
   };
+
+  // Handle image upload to whiteboard
+  const handleImageUpload = useCallback(async (file: File) => {
+    if (!fabricCanvasRef.current || !user) return;
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size must be less than 5MB');
+      return;
+    }
+
+    try {
+      // Create image from file
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const imageUrl = e.target?.result as string;
+        
+        // Use Fabric.js Image.fromURL to load image
+        const { Image } = await import('fabric');
+        Image.fromURL(imageUrl, (img) => {
+          if (!fabricCanvasRef.current) return;
+
+          // Remove existing background image if any
+          if (backgroundImageRef.current) {
+            fabricCanvasRef.current.remove(backgroundImageRef.current);
+          }
+
+          // Resize canvas to image dimensions
+          const imgWidth = img.width || 800;
+          const imgHeight = img.height || 600;
+          
+          // Keep aspect ratio but fit within available space
+          const maxWidth = width;
+          const maxHeight = fabricCanvasRef.current.height || 600;
+          const scale = Math.min(maxWidth / imgWidth, maxHeight / imgHeight, 1);
+          
+          const scaledWidth = imgWidth * scale;
+          const scaledHeight = imgHeight * scale;
+
+          // Set canvas size
+          fabricCanvasRef.current.setWidth(scaledWidth);
+          fabricCanvasRef.current.setHeight(scaledHeight);
+
+          // Scale and position image
+          img.scale(scale);
+          img.set({
+            left: 0,
+            top: 0,
+            selectable: false,
+            evented: false,
+            excludeFromExport: false,
+          });
+
+          // Add image to canvas (send to back)
+          fabricCanvasRef.current.add(img);
+          fabricCanvasRef.current.sendToBack(img);
+          backgroundImageRef.current = img;
+          
+          fabricCanvasRef.current.renderAll();
+        });
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error loading image:', error);
+      alert('Failed to load image');
+    }
+  }, [user, width]);
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleImageUpload(file);
+    }
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleImageUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Export canvas as image and send to chat
+  const handleSendCanvasToAI = useCallback(async () => {
+    if (!fabricCanvasRef.current || !user || !onSendCanvas) return;
+
+    try {
+      // Export canvas as data URL (PNG)
+      const dataURL = fabricCanvasRef.current.toDataURL({
+        format: 'png',
+        quality: 0.9,
+        multiplier: 1,
+      });
+
+      // Convert data URL to blob
+      const response = await fetch(dataURL);
+      const blob = await response.blob();
+      
+      // Create File object from blob
+      const file = new File([blob], 'whiteboard-canvas.png', { type: 'image/png' });
+
+      // Upload to Firebase Storage
+      const imageUrl = await uploadImage(file, user.uid);
+
+      // Send to chat
+      onSendCanvas(imageUrl, 'Here is my whiteboard:');
+    } catch (error) {
+      console.error('Error sending canvas to AI:', error);
+      alert('Failed to send canvas. Please try again.');
+    }
+  }, [user, onSendCanvas, uploadImage]);
 
 
 
@@ -460,9 +672,19 @@ export const WhiteboardPanel = ({
               max="20"
               value={brushWidth}
               onChange={(e) => setBrushWidth(Number(e.target.value))}
-              title="Brush width"
-              aria-label="Brush width"
+              title={activeTool === 'eraser' ? `Eraser radius: ${brushWidth * 2}px` : `Brush width: ${brushWidth}px`}
+              aria-label={activeTool === 'eraser' ? `Eraser radius: ${brushWidth * 2}px` : `Brush width: ${brushWidth}px`}
             />
+            {activeTool === 'eraser' && (
+              <span className="eraser-radius-label" title={`Eraser radius: ${brushWidth * 2}px`}>
+                R: {brushWidth * 2}px
+              </span>
+            )}
+            {activeTool !== 'eraser' && (
+              <span title={`Brush width: ${brushWidth}px`}>
+                {brushWidth}px
+              </span>
+            )}
           </div>
           <button
             className="control-btn"
@@ -476,6 +698,45 @@ export const WhiteboardPanel = ({
               <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             </svg>
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileInputChange}
+            style={{ display: 'none' }}
+          />
+          <button
+            className="control-btn"
+            onClick={handleImageUploadClick}
+            title="Upload Image"
+            aria-label="Upload image to whiteboard"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+          </button>
+          {onSendCanvas && (
+            <button
+              className="control-btn export-btn"
+              onClick={handleSendCanvasToAI}
+              disabled={isUploadingCanvas}
+              title="Send Canvas to AI"
+              aria-label="Send canvas snapshot to AI"
+            >
+              {isUploadingCanvas ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+              )}
+            </button>
+          )}
         </div>
       </div>
 

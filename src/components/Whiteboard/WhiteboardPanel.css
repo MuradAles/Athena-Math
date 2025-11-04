@@ -98,6 +98,13 @@
   min-width: 40px;
 }
 
+.eraser-radius-label {
+  font-size: 14px;
+  color: #dc3545;
+  font-weight: 600;
+  min-width: 60px;
+}
+
 .control-btn {
   padding: 8px 12px;
   border: 1px solid #d0d0d0;

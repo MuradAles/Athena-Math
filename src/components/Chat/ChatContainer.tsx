@@ -4,7 +4,7 @@
  * Now integrated with Firestore for persistence
  */
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react';
 import type { Message as MessageType } from '../../types';
 import { MessageList } from './MessageList';
 import { InputArea } from './InputArea';
@@ -19,9 +19,13 @@ interface ChatContainerProps {
   chatId: string | null;
 }
 
-export const ChatContainer = ({ 
+export interface ChatContainerRef {
+  sendMessage: (content: string, imageUrl?: string) => void;
+}
+
+export const ChatContainer = forwardRef<ChatContainerRef, ChatContainerProps>(({ 
   chatId,
-}: ChatContainerProps) => {
+}, ref) => {
   const { user } = useAuthContext();
   const { currentChat, addMessage, selectChat } = useChats(user?.uid || null);
 
@@ -86,11 +90,26 @@ export const ChatContainer = ({
             content: content || '',
           };
 
+      // Convert stored messages to API format
+      // If message has imageUrl, reconstruct vision format
       const messagesForAPI = [
-        ...messages.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        })),
+        ...messages.map((msg) => {
+          // If message has an image, convert to OpenAI vision format
+          if (msg.imageUrl) {
+            return {
+              role: msg.role as 'user' | 'assistant',
+              content: [
+                { type: 'text' as const, text: msg.content || 'What is this problem?' },
+                { type: 'image_url' as const, image_url: { url: msg.imageUrl } },
+              ],
+            };
+          }
+          // Otherwise, use content as string
+          return {
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+          };
+        }),
         newUserMessage,
       ];
 
@@ -142,10 +161,15 @@ export const ChatContainer = ({
         
         resetStream();
       },
-    });
+      });
     },
     [chatId, user, messages, currentProblem, addMessage, startStream, resetStream]
   );
+
+  // Expose sendMessage function via ref
+  useImperativeHandle(ref, () => ({
+    sendMessage: handleSendMessage,
+  }));
 
   if (!chatId) {
     return (
@@ -179,5 +203,7 @@ export const ChatContainer = ({
       />
     </div>
   );
-};
+});
+
+ChatContainer.displayName = 'ChatContainer';
 

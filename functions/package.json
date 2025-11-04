@@ -18,6 +18,7 @@
   "dependencies": {
     "firebase-admin": "^12.6.0",
     "firebase-functions": "^6.0.1",
+    "nerdamer": "^1.1.13",
     "openai": "^4.28.0"
   },
   "devDependencies": {
