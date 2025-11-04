@@ -2,7 +2,7 @@
 ## What Works & What's Left
 
 **Last Updated:** November 4, 2025  
-**Timeline:** Day 2 Complete - Full Functionality & Persistence + Audio Features
+**Timeline:** Day 2 Complete - Math Tools Validation + Whiteboard Integration
 
 ---
 
@@ -52,6 +52,41 @@
 - ✅ Images display in chat messages (not as URLs)
 - ✅ Image extraction service created (not currently used)
 - ✅ OpenAI vision format support
+- ✅ Fixed image message reconstruction in chat history (converts Firestore messages back to vision format)
+
+### Math Tools & Validation System
+- ✅ Math tools implementation (`functions/src/utils/mathTools.ts`)
+  - Algebra tools (solve linear/quadratic, factor, expand, simplify, systems)
+  - Geometry tools (area, volume, perimeter, surface area, Pythagorean theorem)
+  - Calculus tools (derivative, integral, limit)
+  - Arithmetic tools (evaluate expression, calculate percentage)
+  - Validation tools (validate_answer, check_step)
+- ✅ Math tool schemas (`functions/src/utils/mathToolSchemas.ts`)
+  - OpenAI function schemas for all tools
+  - Integrated into Cloud Function with automatic execution
+- ✅ Enhanced validation prompt
+  - Mandatory tool usage rules
+  - Explicit examples for arithmetic validation
+  - Clear instructions for when to use each tool
+- ✅ Improved validation function
+  - Better numeric comparison
+  - Handles arithmetic expressions correctly
+  - Extracts numbers from various answer formats
+
+### Whiteboard Enhancement
+- ✅ Image upload to whiteboard
+  - Upload button in header
+  - Canvas resizes to image dimensions
+  - Image as background layer
+- ✅ Canvas export and send
+  - "Send Canvas to AI" button
+  - PNG export functionality
+  - Firebase Storage upload
+  - Automatic send to chat
+- ✅ Whiteboard ↔ Chat integration
+  - Ref-based communication
+  - Canvas images appear in chat
+  - AI can analyze canvas content
 
 ### Audio Features (Stretch)
 - ✅ Audio input (speech-to-text) with Whisper-1
@@ -100,7 +135,7 @@
 
 ### Day 3 - Polish & Deployment
 - [ ] Step visualization
-- [ ] Whiteboard (stretch feature)
+- [x] Whiteboard (stretch feature) - ✅ Image upload and canvas-to-chat working
 - [ ] UI polish
 - [ ] Deployment (Vercel/Render)
 - [ ] Documentation
@@ -110,9 +145,9 @@
 
 ## 🎯 Current Status
 
-**Phase:** Day 2 Complete - Full Functionality & Persistence  
-**Focus:** Math rendering and testing  
-**Next:** Math rendering (Tasks 2.18-2.20), then testing suite (Tasks 2.21-2.28)  
+**Phase:** Day 2 Complete - Math Tools Validation + Whiteboard Integration  
+**Focus:** Validation system testing and overall functionality verification  
+**Next:** Test validation system with real problems, manual testing suite (Tasks 2.21-2.28)  
 **Blockers:** None
 
 ---
@@ -167,10 +202,13 @@
 - ✅ Image extraction: Removed automatic extraction, images sent directly to AI
 - ✅ Image display: Images now show in messages instead of URLs
 
-**Current:**
-- ⚠️ **Validation Issue:** AI sometimes affirms wrong answers (e.g., "(2x - 6)(2x - 6)" for factoring problem)
-- **Solution:** Strengthen validation protocol (immediate) + switch model later (GPT-5-mini or GPT-4o) if needed
-- **Priority:** Focus on validation improvements first, model switching deferred to project completion
+**Fixed:**
+- ✅ **Validation Issue:** Implemented mandatory math tool validation system
+  - Added math tools with nerdamer for accurate calculations
+  - Enhanced prompt with mandatory validation rules
+  - Improved validation function with better numeric comparison
+  - AI now MUST use tools to validate all numerical answers
+- ✅ **Image message reconstruction:** Fixed issue where messages with images weren't converted back to OpenAI vision format when reading from Firestore
 
 **Fixed:**
 - ✅ **Auto-play audio not working:** Fixed React Hooks error (useCallback inside map), removed excessive console logs, reduced message spacing
@@ -190,13 +228,17 @@
 7. **Images sent directly to AI:** No text extraction, images in OpenAI vision format
 8. **Image display:** Images stored in Firestore with `imageUrl` field, displayed inline in messages
 9. **Model switching deferred:** Focus on validation improvements first, switch model (GPT-5-mini or GPT-4o) LAST when finishing project
+10. **Math tools validation:** Mandatory tool usage for ALL numerical answers, using nerdamer for accurate calculations
+11. **Image message reconstruction:** Messages with images reconstructed to OpenAI vision format when reading from Firestore
+12. **Whiteboard integration:** Ref-based communication between whiteboard and chat, canvas exported as PNG and sent to AI
 
 ### Critical Reminders
 - **Priority #1:** Natural conversational prompt (not robotic)
 - **Priority #2:** Never give direct answers
-- **Priority #3:** Test extensively before moving forward
+- **Priority #3:** Mandatory validation - ALL numerical answers must be validated with tools
+- **Priority #4:** Test extensively before moving forward
 
 ---
 
-**Document Status:** Day 2 complete - Authentication, chat history, image upload, and display all working. Ready for math rendering and testing.
+**Document Status:** Day 2 complete - Math tools validation system implemented, image message reconstruction fixed, whiteboard image upload and canvas-to-chat integration working. Ready for validation testing.
 

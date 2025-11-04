@@ -2,7 +2,7 @@
 ## Current Work Focus
 
 **Last Updated:** November 4, 2025  
-**Current Phase:** Day 2 Complete - Full Functionality & Persistence + Audio Features
+**Current Phase:** Day 2 Complete - Math Tools Validation + Whiteboard Integration
 
 ---
 
@@ -59,12 +59,56 @@
   - `extractProblem` Cloud Function using GPT-4o Vision
   - Image extraction service ready
   - **NOTE:** Currently not used - images sent directly to AI
-- **Task 2.17a:** Image display in messages (NEW)
+- **Task 2.17a:** Image display in messages (COMPLETED)
   - Updated Message type to include optional `imageUrl` field
   - Message component displays images inline (not as URLs)
   - Firestore saves/reads `imageUrl` field
   - Legacy messages with `[Image: ...]` format still supported
   - CSS styling for images in messages
+- **Fix:** Image message reconstruction in chat history
+  - Fixed issue where messages with images weren't converted back to OpenAI vision format
+  - ChatContainer now reconstructs vision format when reading messages from Firestore
+  - Ensures AI can see images in conversation history
+
+### ✅ Math Tools & Validation System (COMPLETED)
+- **Math Tools Implementation:**
+  - Created `functions/src/utils/mathTools.ts` with nerdamer integration
+  - Implemented algebra tools (solve linear/quadratic, factor, expand, simplify)
+  - Implemented geometry tools (area, volume, perimeter, surface area, Pythagorean theorem)
+  - Implemented calculus tools (derivative, integral, limit)
+  - Implemented arithmetic tools (evaluate expression, calculate percentage)
+  - Implemented validation tools (validate_answer, check_step)
+- **Math Tool Schemas:**
+  - Created `functions/src/utils/mathToolSchemas.ts` with OpenAI function schemas
+  - All tools properly defined with descriptions and parameters
+  - Tools integrated into Cloud Function with automatic execution
+- **Enhanced Validation Prompt:**
+  - Strengthened prompt with MANDATORY validation rules
+  - Added explicit examples for arithmetic validation (e.g., "100 - 36 = 74" → must validate)
+  - Made tool usage mandatory for ALL numerical answers
+  - Improved error messages to include correct answers
+- **Improved Validation Function:**
+  - Enhanced `validateAnswer` to handle arithmetic expressions better
+  - Added numeric comparison with floating-point tolerance
+  - Better extraction of numbers from student answers (handles "x = 4" format)
+  - Improved error messages showing correct answer
+
+### ✅ Whiteboard Enhancement (COMPLETED)
+- **Image Upload to Whiteboard:**
+  - Added image upload button in whiteboard header
+  - Canvas resizes to match uploaded image dimensions (maintains aspect ratio)
+  - Image loaded as background layer (non-selectable, sent to back)
+  - Supports images up to 5MB
+- **Canvas Export & Send:**
+  - Added "Send Canvas to AI" button (green export style)
+  - Exports canvas as PNG image using Fabric.js `toDataURL()`
+  - Uploads canvas image to Firebase Storage
+  - Automatically sends canvas image to chat with message
+- **Whiteboard ↔ Chat Integration:**
+  - Added `onSendCanvas` callback prop to WhiteboardPanel
+  - ChatContainer exposes `sendMessage` via forwardRef
+  - App.tsx wires up whiteboard → chat communication
+  - Canvas images appear in chat messages and AI can analyze them
 
 ### ✅ Day 1: OpenAI Integration & Streaming (COMPLETED)
 - **Task 1.13:** OpenAI Cloud Function with SSE streaming
@@ -132,8 +176,8 @@
 
 ## Current Status
 
-**Session:** Day 2 complete - Authentication, chat history, image upload, math rendering, and audio features all working  
-**Next Tasks:** Math rendering testing (Task 2.20), manual testing suite (Tasks 2.21-2.28)
+**Session:** Day 2 complete - Math tools validation system implemented, image message reconstruction fixed, whiteboard image upload and canvas-to-chat integration working  
+**Next Tasks:** Testing validation system with real problems, manual testing suite (Tasks 2.21-2.28)
 
 ---
 
@@ -166,6 +210,8 @@
 - ✅ **GPT-4o** - for image extraction (`extractProblem` function, currently not used)
 - ✅ **Hosting:** Production Cloud Functions (not emulator)
 - ✅ **Services:** Firebase (Firestore + Storage + Cloud Functions)
+- ✅ **Math Tools:** nerdamer library for symbolic math calculations
+- ✅ **Whiteboard:** Fabric.js for canvas drawing and image manipulation
 
 ### Model Selection Decision
 - **Current:** GPT-4o-mini (cost-effective, good for simple math)
@@ -185,6 +231,7 @@
 - **#1 Priority:** Natural conversational prompt (not robotic Q&A)
 - **#2 Priority:** Never give direct answers
 - **#3 Priority:** Varied language (avoid repetition)
+- **#4 Priority:** Mandatory validation - ALL numerical answers must be validated with tools
 
 ---
 
@@ -221,5 +268,5 @@
 
 ---
 
-**Document Status:** Day 2 complete - Authentication, chat history, and image upload working. Ready for math rendering and testing.
+**Document Status:** Day 2 complete - Math tools validation system implemented, image message reconstruction fixed, whiteboard image upload and canvas-to-chat integration working. Ready for testing.
 

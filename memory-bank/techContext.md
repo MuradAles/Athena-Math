@@ -15,11 +15,13 @@
 - **CSS Custom Properties** - Theme support (light/dark)
 - **MediaRecorder API** - Browser-based audio recording
 - **Audio API** - Browser-based audio playback
+- **Fabric.js** - Canvas drawing library for whiteboard
 
 ### Backend
 - **Firebase Cloud Functions** - Serverless API endpoints
 - **Node.js 18** - Functions runtime
 - **OpenAI SDK** - Direct API integration (not LangChain)
+- **nerdamer** - Symbolic math library for calculations and validation
 
 ### Firebase Services
 - **Firestore** - Conversation persistence
@@ -123,7 +125,8 @@ OPENAI_API_KEY=         # Stays secret, never exposed to client
 {
   "openai": "^latest",
   "firebase-admin": "^latest",
-  "firebase-functions": "^latest"
+  "firebase-functions": "^latest",
+  "nerdamer": "^latest"
 }
 ```
 
@@ -241,5 +244,12 @@ firebase deploy --only storage:rules     # Deploy Storage rules
 
 ---
 
-**Document Status:** Tech stack confirmed, deployed, and working in production
+### Math Tools
+- **nerdamer** - Symbolic math library for calculations
+  - Used for solving equations, factoring, expanding, simplifying
+  - Used for derivatives, integrals, limits
+  - Used for evaluating arithmetic expressions
+  - Provides accurate mathematical validation
+
+**Document Status:** Tech stack confirmed, deployed, and working in production with math tools and whiteboard integration
 

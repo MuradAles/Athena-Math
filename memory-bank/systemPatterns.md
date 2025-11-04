@@ -1,7 +1,7 @@
 # System Patterns
 ## Architecture & Design Decisions
 
-**Last Updated:** November 3, 2025
+**Last Updated:** November 4, 2025
 
 ---
 
@@ -27,6 +27,8 @@ Frontend (React + TypeScript)
 - Context window management (last 8 messages)
 - Streaming responses back to frontend
 - Problem extraction from images (GPT-4o Vision)
+- Math tool execution (nerdamer-based calculations)
+- Automatic validation of student answers
 
 ---
 
@@ -209,9 +211,20 @@ ChatContainer
 5. Streaming hook updates UI progressively during AI response
 6. On completion, streaming message → regular message → saved to Firestore
 7. Image URLs stored in Firestore `imageUrl` field, displayed inline in messages
+8. When reading messages from Firestore, images reconstructed to OpenAI vision format
+
+**Whiteboard ↔ Chat Flow:**
+1. User uploads image to whiteboard → canvas resizes to image dimensions
+2. User draws/highlights on canvas
+3. User clicks "Send Canvas to AI" → canvas exported as PNG
+4. Canvas uploaded to Firebase Storage
+5. Canvas image sent to chat via `onSendCanvas` callback
+6. ChatContainer receives canvas image and sends to AI
+7. AI analyzes canvas content via Vision API
 
 **Current Implementation:**
 - ✅ ChatContainer manages messages via Firestore subscriptions (`useChats` hook)
+- ✅ ChatContainer exposes `sendMessage` via forwardRef for whiteboard integration
 - ✅ MessageList auto-scrolls to bottom on new messages
 - ✅ InputArea handles Enter (send) vs Shift+Enter (new line), image upload, voice input
 - ✅ Message component displays role-based styling (user right, assistant left)
@@ -220,6 +233,8 @@ ChatContainer
 - ✅ Message component auto-plays audio for new assistant messages
 - ✅ Streaming integration complete
 - ✅ Images sent directly to AI in OpenAI vision format
+- ✅ Image messages reconstructed from Firestore to vision format for API calls
+- ✅ Whiteboard can send canvas images to chat
 
 ---
 
@@ -261,5 +276,55 @@ import type { Message as MessageType } from '../../types';
 
 ---
 
-**Document Status:** Architecture patterns established, full functionality implemented with authentication, persistence, and image support
+### 7. Math Tool Validation Pattern
+**Pattern:** Mandatory tool usage for all numerical validation
+
+```typescript
+// AI must call validate_answer or evaluate_expression for EVERY numerical answer
+// Example: Student says "100 - 36 = 74"
+// AI MUST: Call evaluate_expression("100 - 36") → Result: 64
+// AI MUST: Compare 74 ≠ 64 → Answer is WRONG
+// AI MUST: Point out error before proceeding
+```
+
+**Why:** Ensures accuracy, prevents AI from affirming wrong answers, builds trust
+
+### 8. Image Message Reconstruction Pattern
+**Pattern:** Convert stored messages back to OpenAI vision format when sending to API
+
+```typescript
+// Messages stored in Firestore:
+// { content: "text", imageUrl: "https://..." }
+
+// When sending to OpenAI API, reconstruct:
+if (msg.imageUrl) {
+  return {
+    role: msg.role,
+    content: [
+      { type: 'text', text: msg.content },
+      { type: 'image_url', image_url: { url: msg.imageUrl } }
+    ]
+  };
+}
+```
+
+**Why:** Ensures AI can see images in conversation history, maintains context
+
+### 9. Whiteboard Canvas Export Pattern
+**Pattern:** Export canvas as image and send to chat
+
+```typescript
+// Export canvas
+const dataURL = canvas.toDataURL({ format: 'png' });
+const blob = await fetch(dataURL).then(r => r.blob());
+const file = new File([blob], 'whiteboard.png', { type: 'image/png' });
+
+// Upload and send
+const imageUrl = await uploadImage(file, userId);
+onSendCanvas(imageUrl, 'Here is my whiteboard:');
+```
+
+**Why:** Enables AI to analyze visual annotations, supports geometry problems
+
+**Document Status:** Architecture patterns established, full functionality implemented with authentication, persistence, image support, math tools validation, and whiteboard integration
 

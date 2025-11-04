@@ -40,8 +40,11 @@ Traditional math solvers simply show answers. This product teaches problem-solvi
 ### 5. Visual Explanations (Stretch)
 - Whiteboard tool for diagrams
 - Works on mobile (touch) and desktop (mouse)
-- Non-blocking (can chat while whiteboard open
-- **Acceptance:** Functional drawing and shape tools
+- Non-blocking (can chat while whiteboard open)
+- Image upload to whiteboard (canvas resizes to image dimensions)
+- Draw/highlight on uploaded images
+- Send canvas snapshot to AI for analysis
+- **Acceptance:** Functional drawing and shape tools, image upload, canvas-to-chat integration
 
 ---
 
