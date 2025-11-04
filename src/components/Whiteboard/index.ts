@@ -1,0 +1,2 @@
+export { WhiteboardPanel } from './WhiteboardPanel';
+

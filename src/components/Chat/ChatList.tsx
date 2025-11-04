@@ -4,7 +4,7 @@
  * Supports collapse/expand with animation
  */
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useChats } from '../../hooks/useChats';
 import { useAuthContext } from '../../contexts/AuthContext';
 import './ChatList.css';
@@ -18,6 +18,9 @@ export const ChatList = ({ activeChatId, onSelectChat }: ChatListProps) => {
   const { user } = useAuthContext();
   const { chats, loading, createNewChat, deleteChatById } = useChats(user?.uid || null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const handleNewChat = async () => {
     try {
@@ -29,20 +32,47 @@ export const ChatList = ({ activeChatId, onSelectChat }: ChatListProps) => {
     }
   };
 
-  const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
-    e.stopPropagation(); // Prevent selecting the chat when clicking delete
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
 
-    if (!confirm('Are you sure you want to delete this chat?')) {
-      return;
+    if (openMenuId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openMenuId]);
+
+  const handleMenuClick = (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation();
+    setOpenMenuId(openMenuId === chatId ? null : chatId);
+  };
+
+  const handleDeleteChat = async (chatId: string) => {
+    // Close menu
+    setOpenMenuId(null);
+
+    // Mark as deleting for animation
+    setDeletingChatId(chatId);
+    
+    // Clear active chat if it's the one being deleted
+    if (activeChatId === chatId) {
+      onSelectChat(null);
     }
 
     try {
+      // Wait for animation to start
+      await new Promise(resolve => setTimeout(resolve, 100));
       await deleteChatById(chatId);
-      if (activeChatId === chatId) {
-        onSelectChat(null);
-      }
     } catch (error) {
       console.error('Error deleting chat:', error);
+      setDeletingChatId(null); // Reset on error
       alert('Failed to delete chat. Please try again.');
     }
   };
@@ -92,7 +122,7 @@ export const ChatList = ({ activeChatId, onSelectChat }: ChatListProps) => {
                 {chats.map((chat) => (
                   <div
                     key={chat.id}
-                    className={`chat-list-item-wrapper ${activeChatId === chat.id ? 'active' : ''}`}
+                    className={`chat-list-item-wrapper ${activeChatId === chat.id ? 'active' : ''} ${deletingChatId === chat.id ? 'chat-list-item-wrapper--deleting' : ''}`}
                   >
                     <button
                       onClick={() => onSelectChat(chat.id)}
@@ -106,13 +136,36 @@ export const ChatList = ({ activeChatId, onSelectChat }: ChatListProps) => {
                         <div className="chat-list-item-date">{formatDate(chat.updatedAt)}</div>
                       </div>
                     </button>
-                    <button
-                      onClick={(e) => handleDeleteChat(e, chat.id)}
-                      className="chat-list-item-delete"
-                      aria-label="Delete chat"
-                    >
-                      ×
-                    </button>
+                    <div className="chat-list-item-menu" ref={openMenuId === chat.id ? menuRef : null}>
+                      <button
+                        onClick={(e) => handleMenuClick(e, chat.id)}
+                        className="chat-list-item-menu-btn"
+                        aria-label="Chat options"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="1"/>
+                          <circle cx="12" cy="5" r="1"/>
+                          <circle cx="12" cy="19" r="1"/>
+                        </svg>
+                      </button>
+                      {openMenuId === chat.id && (
+                        <div className="chat-list-item-menu-dropdown">
+                          <button
+                            onClick={() => handleDeleteChat(chat.id)}
+                            className="chat-list-item-menu-delete"
+                            aria-label="Delete chat"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6"/>
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                              <line x1="10" y1="11" x2="10" y2="17"/>
+                              <line x1="14" y1="11" x2="14" y2="17"/>
+                            </svg>
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

@@ -3,8 +3,9 @@
  * Text input for user messages with image upload and send functionality
  */
 
-import { useState, useRef, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
+import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
 import { useImageUpload } from '../../hooks/useImageUpload';
+import { useAudioRecording } from '../../hooks/useAudioRecording';
 import { useAuthContext } from '../../contexts/AuthContext';
 import './InputArea.css';
 
@@ -19,7 +20,16 @@ export const InputArea = ({ onSendMessage, disabled = false }: InputAreaProps) =
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { uploadImage, uploadProgress, isUploading, error: uploadError, reset: resetUpload } = useImageUpload();
+  const { 
+    isRecording, 
+    isTranscribing, 
+    error: audioError, 
+    startRecording, 
+    stopRecording, 
+    transcribeAudio 
+  } = useAudioRecording();
 
   const handleSend = () => {
     const textToSend = input.trim();
@@ -43,7 +53,19 @@ export const InputArea = ({ onSendMessage, disabled = false }: InputAreaProps) =
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
+    // Auto-resize textarea
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
   };
+
+  // Auto-resize on mount and when input changes
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [input]);
 
   const handleFileSelect = async (file: File) => {
     if (!user) {
@@ -113,6 +135,22 @@ export const InputArea = ({ onSendMessage, disabled = false }: InputAreaProps) =
     fileInputRef.current?.click();
   };
 
+  const handleMicrophoneClick = async () => {
+    if (isRecording) {
+      // Stop recording and transcribe
+      const audioBlob = await stopRecording();
+      if (audioBlob) {
+        const transcribedText = await transcribeAudio(audioBlob);
+        if (transcribedText) {
+          setInput(transcribedText);
+        }
+      }
+    } else {
+      // Start recording
+      await startRecording();
+    }
+  };
+
   const handleRemoveImage = () => {
     setImagePreview(null);
     setImageUrl(null);
@@ -165,39 +203,63 @@ export const InputArea = ({ onSendMessage, disabled = false }: InputAreaProps) =
           <button
             className="input-area__upload-btn"
             onClick={handleImageUploadClick}
-            disabled={disabled || isUploading}
+            disabled={disabled || isUploading || isRecording || isTranscribing}
             aria-label="Upload image"
             title="Upload image"
           >
-            📷
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
           </button>
           <textarea
+            ref={textareaRef}
             className="input-area__textarea"
             value={input}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            placeholder="Type your message or drag an image here... (Enter to send, Shift+Enter for new line)"
-            disabled={disabled || isUploading}
+            placeholder="Ask your question"
+            disabled={disabled || isUploading || isRecording || isTranscribing}
             rows={1}
-            style={{
-              minHeight: '40px',
-              maxHeight: '120px',
-              resize: 'none',
-            }}
           />
+          <button
+            className={`input-area__mic-btn ${isRecording ? 'input-area__mic-btn--recording' : ''}`}
+            onClick={handleMicrophoneClick}
+            disabled={disabled || isUploading || isTranscribing}
+            aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+            title={isRecording ? 'Stop recording' : 'Start recording'}
+          >
+            {isRecording ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="10"/>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+            )}
+          </button>
           <button
             className="btn btn-primary input-area__button"
             onClick={handleSend}
-            disabled={!canSend}
+            disabled={!canSend || isRecording || isTranscribing}
             aria-label="Send message"
           >
-            Send
+            {isTranscribing ? 'Transcribing...' : 'Send'}
           </button>
         </div>
 
         {/* Upload Error */}
         {uploadError && (
           <div className="input-area__error">{uploadError}</div>
+        )}
+        {/* Audio Error */}
+        {audioError && (
+          <div className="input-area__error">{audioError}</div>
         )}
       </div>
     </div>

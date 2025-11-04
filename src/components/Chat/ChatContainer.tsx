@@ -4,7 +4,7 @@
  * Now integrated with Firestore for persistence
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import type { Message as MessageType } from '../../types';
 import { MessageList } from './MessageList';
 import { InputArea } from './InputArea';
@@ -19,7 +19,9 @@ interface ChatContainerProps {
   chatId: string | null;
 }
 
-export const ChatContainer = ({ chatId }: ChatContainerProps) => {
+export const ChatContainer = ({ 
+  chatId,
+}: ChatContainerProps) => {
   const { user } = useAuthContext();
   const { currentChat, addMessage, selectChat } = useChats(user?.uid || null);
 
@@ -50,7 +52,6 @@ export const ChatContainer = ({ chatId }: ChatContainerProps) => {
         return;
       }
 
-      console.log('Sending message:', content, imageUrl ? 'with image' : '');
 
       // Create user message (store imageUrl separately)
       const userMessage: MessageType = {
@@ -64,7 +65,6 @@ export const ChatContainer = ({ chatId }: ChatContainerProps) => {
       // Save user message to Firestore
       try {
         await addMessage(userMessage);
-        console.log('User message saved to Firestore');
       } catch (error) {
         console.error('Error saving user message:', error);
         alert('Failed to save message. Check console for details.');
@@ -94,7 +94,6 @@ export const ChatContainer = ({ chatId }: ChatContainerProps) => {
         newUserMessage,
       ];
 
-      console.log('Messages for API:', messagesForAPI.length, 'messages');
 
       // Generate problem context from LocalStorage
       const problemContext = generateContextString();
@@ -102,7 +101,6 @@ export const ChatContainer = ({ chatId }: ChatContainerProps) => {
       // Start streaming AI response
       resetStream(); // Clear any previous stream state
       
-      console.log('Starting stream...');
       startStream({
       messages: messagesForAPI,
       problem: currentProblem,
@@ -159,10 +157,12 @@ export const ChatContainer = ({ chatId }: ChatContainerProps) => {
     );
   }
 
+  // Normal chat mode
   return (
     <div className="chat-container">
       <MessageList 
         messages={messages}
+        chatId={chatId}
         streamingMessage={
           isStreaming ? (
             <StreamingMessage 

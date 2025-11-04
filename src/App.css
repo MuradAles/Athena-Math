@@ -16,6 +16,7 @@
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 .app-chat-area {
@@ -23,6 +24,49 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: margin-right 0.3s ease;
+}
+
+.whiteboard-sidebar {
+  position: relative;
+  height: 100%;
+  background: #ffffff;
+  border-left: 1px solid #e0e0e0;
+  overflow: hidden;
+  transition: width 0.3s ease;
+  flex-shrink: 0;
+}
+
+.whiteboard-sidebar.open {
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.whiteboard-panel-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.whiteboard-resizer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: transparent;
+  cursor: col-resize;
+  z-index: 10;
+  transition: background 0.2s;
+}
+
+.whiteboard-resizer:hover {
+  background: #007bff;
+}
+
+.whiteboard-resizer:active {
+  background: #0056b3;
 }
 
 .app-loading {
@@ -39,9 +83,11 @@
   height: 100vh;
   margin: 0;
   padding: 0;
+  overflow: hidden;
 }
 
 body {
   margin: 0;
   padding: 0;
+  overflow: hidden;
 }

@@ -213,9 +213,11 @@ ChatContainer
 **Current Implementation:**
 - ✅ ChatContainer manages messages via Firestore subscriptions (`useChats` hook)
 - ✅ MessageList auto-scrolls to bottom on new messages
-- ✅ InputArea handles Enter (send) vs Shift+Enter (new line), image upload
+- ✅ InputArea handles Enter (send) vs Shift+Enter (new line), image upload, voice input
 - ✅ Message component displays role-based styling (user right, assistant left)
 - ✅ Message component displays images inline (not as URLs)
+- ✅ Message component has play button for audio output
+- ✅ Message component auto-plays audio for new assistant messages
 - ✅ Streaming integration complete
 - ✅ Images sent directly to AI in OpenAI vision format
 

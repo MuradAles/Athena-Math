@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.extractProblem = exports.chat = void 0;
+exports.speech = exports.transcribe = exports.extractProblem = exports.chat = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
 const openai_1 = __importDefault(require("openai"));
@@ -81,6 +81,7 @@ exports.chat = (0, https_1.onRequest)({
             return;
         }
         // Build conversation messages for OpenAI
+        // Support both text and image content (OpenAI vision format)
         const conversationMessages = [
             {
                 role: "system",
@@ -89,7 +90,7 @@ exports.chat = (0, https_1.onRequest)({
             // Only send last 8 messages for cost optimization
             ...messages.slice(-8).map((msg) => ({
                 role: msg.role,
-                content: msg.content,
+                content: msg.content, // Can be string or array (for images)
             })),
         ];
         // Set SSE headers
@@ -98,13 +99,15 @@ exports.chat = (0, https_1.onRequest)({
         res.setHeader("Connection", "keep-alive");
         // Get OpenAI client (initialized when function is called)
         const openai = getOpenAIClient();
-        v2_1.logger.info("Creating OpenAI stream with model: gpt-4o-mini");
+        // Check if any message has image content (for vision support)
+        const hasImages = conversationMessages.some((msg) => Array.isArray(msg.content) && msg.content.some((item) => item.type === 'image_url'));
+        // Use gpt-4o for vision support (images), fallback to gpt-4o-mini for text-only
+        const model = hasImages ? "gpt-4o" : "gpt-4o-mini";
+        v2_1.logger.info(`Creating OpenAI stream with model: ${model}`);
         v2_1.logger.info(`Sending ${conversationMessages.length} messages to OpenAI`);
         // Create OpenAI stream
-        // Note: Using gpt-4o-mini which doesn't require organization verification for streaming
-        // Alternative: gpt-4o requires organization verification (https://platform.openai.com/settings/organization/general)
         const stream = await openai.chat.completions.create({
-            model: "gpt-4o", // gpt-4o-mini doesn't require org verification for streaming
+            model,
             messages: conversationMessages,
             stream: true,
             temperature: 0.8, // Natural, varied responses
@@ -228,6 +231,142 @@ exports.extractProblem = (0, https_1.onRequest)({
     }
     catch (error) {
         v2_1.logger.error("Error in extractProblem function:", error);
+        const errorMessage = error instanceof Error
+            ? error.message
+            : "An unknown error occurred";
+        res.status(500).json({ error: errorMessage });
+    }
+});
+/**
+ * HTTP Cloud Function for transcribing audio to text using Whisper-1
+ *
+ * POST /transcribe
+ * Body: FormData with audio file (multipart/form-data)
+ *
+ * Returns: { text: string } - Transcribed text
+ */
+exports.transcribe = (0, https_1.onRequest)({
+    cors: true,
+    timeoutSeconds: 60,
+    maxInstances: 10,
+}, async (req, res) => {
+    // Set CORS headers FIRST before any response
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    // Handle CORS preflight
+    if (req.method === "OPTIONS") {
+        res.status(204).end();
+        return;
+    }
+    // Only allow POST requests
+    if (req.method !== "POST") {
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+    try {
+        // Get OpenAI client
+        const openai = getOpenAIClient();
+        // For Cloud Functions, the audio file should be sent as base64 string
+        // or we need to handle multipart/form-data
+        const { audioData } = req.body;
+        if (!audioData) {
+            res.status(400).json({ error: "Invalid request: audioData required" });
+            return;
+        }
+        // Convert base64 to buffer
+        const audioBuffer = Buffer.from(audioData, 'base64');
+        v2_1.logger.info("Transcribing audio with Whisper-1...");
+        // Create a File object from buffer for OpenAI SDK
+        // Node.js 22+ has native File support
+        // OpenAI SDK accepts File, Blob, or Buffer
+        const audioFile = new File([audioBuffer], 'audio.webm', {
+            type: 'audio/webm',
+        });
+        // Transcribe audio using Whisper-1
+        const transcription = await openai.audio.transcriptions.create({
+            file: audioFile,
+            model: "whisper-1",
+            language: "en",
+            response_format: "json",
+        });
+        const text = transcription.text.trim();
+        if (!text) {
+            res.status(400).json({ error: "Could not transcribe audio" });
+            return;
+        }
+        v2_1.logger.info("Audio transcribed successfully");
+        // Return transcribed text
+        res.json({ text });
+    }
+    catch (error) {
+        v2_1.logger.error("Error in transcribe function:", error);
+        const errorMessage = error instanceof Error
+            ? error.message
+            : "An unknown error occurred";
+        res.status(500).json({ error: errorMessage });
+    }
+});
+/**
+ * HTTP Cloud Function for text-to-speech using TTS-1
+ *
+ * POST /speech
+ * Body: { text: string, voice?: string }
+ *
+ * Returns: Audio file (base64 encoded MP3)
+ */
+exports.speech = (0, https_1.onRequest)({
+    cors: true,
+    timeoutSeconds: 60,
+    maxInstances: 10,
+}, async (req, res) => {
+    // Set CORS headers FIRST before any response
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    // Handle CORS preflight
+    if (req.method === "OPTIONS") {
+        res.status(204).end();
+        return;
+    }
+    // Only allow POST requests
+    if (req.method !== "POST") {
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+    try {
+        const { text, voice = "alloy" } = req.body;
+        // Validate request body
+        if (!text || typeof text !== "string") {
+            res.status(400).json({ error: "Invalid request: text required" });
+            return;
+        }
+        // Validate voice
+        const validVoices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
+        if (!validVoices.includes(voice)) {
+            res.status(400).json({ error: `Invalid voice. Must be one of: ${validVoices.join(", ")}` });
+            return;
+        }
+        // Get OpenAI client
+        const openai = getOpenAIClient();
+        v2_1.logger.info(`Generating speech with TTS-1, voice: ${voice}...`);
+        // Generate speech using TTS-1
+        const speechResponse = await openai.audio.speech.create({
+            model: "tts-1",
+            voice: voice,
+            input: text,
+            response_format: "mp3",
+        });
+        // Convert response to buffer
+        const buffer = Buffer.from(await speechResponse.arrayBuffer());
+        // Convert to base64 for JSON response
+        const base64Audio = buffer.toString('base64');
+        v2_1.logger.info("Speech generated successfully");
+        // Return audio as base64 string
+        res.json({ audio: base64Audio, format: "mp3" });
+    }
+    catch (error) {
+        v2_1.logger.error("Error in speech function:", error);
         const errorMessage = error instanceof Error
             ? error.message
             : "An unknown error occurred";

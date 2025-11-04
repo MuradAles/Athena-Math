@@ -10,6 +10,7 @@
   width: 100%;
   background-color: var(--color-background);
   align-items: center;
+  position: relative;
 }
 
 .chat-empty {
@@ -21,4 +22,44 @@
   font-size: var(--font-size-base);
   line-height: var(--line-height-normal);
 }
+
+.chat-whiteboard-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 200;
+  padding: 8px 12px;
+  border: 1px solid #d0d0d0;
+  background: #ffffff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+  min-width: 40px;
+  height: 40px;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative;
+  z-index: 10;
+}
+
+.chat-whiteboard-btn:hover {
+  background: #f5f5f5;
+  border-color: #666;
+}
+
+.chat-whiteboard-btn.active {
+  background: #007bff;
+  color: #ffffff;
+  border-color: #007bff;
+}
+
+.chat-whiteboard-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
 

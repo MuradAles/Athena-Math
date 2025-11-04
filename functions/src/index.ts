@@ -256,3 +256,174 @@ export const extractProblem = onRequest(
   }
 );
 
+/**
+ * HTTP Cloud Function for transcribing audio to text using Whisper-1
+ * 
+ * POST /transcribe
+ * Body: FormData with audio file (multipart/form-data)
+ * 
+ * Returns: { text: string } - Transcribed text
+ */
+export const transcribe = onRequest(
+  {
+    cors: true,
+    timeoutSeconds: 60,
+    maxInstances: 10,
+  },
+  async (req, res) => {
+    // Set CORS headers FIRST before any response
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    // Handle CORS preflight
+    if (req.method === "OPTIONS") {
+      res.status(204).end();
+      return;
+    }
+
+    // Only allow POST requests
+    if (req.method !== "POST") {
+      res.status(405).send("Method Not Allowed");
+      return;
+    }
+
+    try {
+      // Get OpenAI client
+      const openai = getOpenAIClient();
+
+      // For Cloud Functions, the audio file should be sent as base64 string
+      // or we need to handle multipart/form-data
+      const { audioData } = req.body;
+
+      if (!audioData) {
+        res.status(400).json({ error: "Invalid request: audioData required" });
+        return;
+      }
+
+      // Convert base64 to buffer
+      const audioBuffer = Buffer.from(audioData, 'base64');
+
+      logger.info("Transcribing audio with Whisper-1...");
+
+      // Create a File object from buffer for OpenAI SDK
+      // Node.js 22+ has native File support
+      // OpenAI SDK accepts File, Blob, or Buffer
+      const audioFile = new File([audioBuffer], 'audio.webm', {
+        type: 'audio/webm',
+      });
+
+      // Transcribe audio using Whisper-1
+      const transcription = await openai.audio.transcriptions.create({
+        file: audioFile,
+        model: "whisper-1",
+        language: "en",
+        response_format: "json",
+      });
+
+      const text = transcription.text.trim();
+
+      if (!text) {
+        res.status(400).json({ error: "Could not transcribe audio" });
+        return;
+      }
+
+      logger.info("Audio transcribed successfully");
+
+      // Return transcribed text
+      res.json({ text });
+    } catch (error) {
+      logger.error("Error in transcribe function:", error);
+
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "An unknown error occurred";
+
+      res.status(500).json({ error: errorMessage });
+    }
+  }
+);
+
+/**
+ * HTTP Cloud Function for text-to-speech using TTS-1
+ * 
+ * POST /speech
+ * Body: { text: string, voice?: string }
+ * 
+ * Returns: Audio file (base64 encoded MP3)
+ */
+export const speech = onRequest(
+  {
+    cors: true,
+    timeoutSeconds: 60,
+    maxInstances: 10,
+  },
+  async (req, res) => {
+    // Set CORS headers FIRST before any response
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    // Handle CORS preflight
+    if (req.method === "OPTIONS") {
+      res.status(204).end();
+      return;
+    }
+
+    // Only allow POST requests
+    if (req.method !== "POST") {
+      res.status(405).send("Method Not Allowed");
+      return;
+    }
+
+    try {
+      const { text, voice = "alloy" } = req.body;
+
+      // Validate request body
+      if (!text || typeof text !== "string") {
+        res.status(400).json({ error: "Invalid request: text required" });
+        return;
+      }
+
+      // Validate voice
+      const validVoices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
+      if (!validVoices.includes(voice)) {
+        res.status(400).json({ error: `Invalid voice. Must be one of: ${validVoices.join(", ")}` });
+        return;
+      }
+
+      // Get OpenAI client
+      const openai = getOpenAIClient();
+
+      logger.info(`Generating speech with TTS-1, voice: ${voice}...`);
+
+      // Generate speech using TTS-1
+      const speechResponse = await openai.audio.speech.create({
+        model: "tts-1",
+        voice: voice as "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer",
+        input: text,
+        response_format: "mp3",
+      });
+
+      // Convert response to buffer
+      const buffer = Buffer.from(await speechResponse.arrayBuffer());
+
+      // Convert to base64 for JSON response
+      const base64Audio = buffer.toString('base64');
+
+      logger.info("Speech generated successfully");
+
+      // Return audio as base64 string
+      res.json({ audio: base64Audio, format: "mp3" });
+    } catch (error) {
+      logger.error("Error in speech function:", error);
+
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "An unknown error occurred";
+
+      res.status(500).json({ error: errorMessage });
+    }
+  }
+);
+

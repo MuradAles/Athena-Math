@@ -2,7 +2,7 @@
 ## Current Work Focus
 
 **Last Updated:** November 4, 2025  
-**Current Phase:** Day 2 Complete - Full Functionality & Persistence
+**Current Phase:** Day 2 Complete - Full Functionality & Persistence + Audio Features
 
 ---
 
@@ -23,6 +23,30 @@
   - Real-time message subscriptions
   - Centered chat layout (ChatGPT-style)
   - Custom scrollbar styling
+
+### ✅ Day 2: Audio Features (COMPLETED - Stretch)
+- **Task 2.29:** Audio input (speech-to-text) with Whisper-1
+  - `src/hooks/useAudioRecording.ts` - Custom hook for microphone recording
+  - `functions/src/index.ts` - `/transcribe` Cloud Function endpoint
+  - OpenAI Whisper-1 API integration
+  - Base64 audio encoding/decoding
+  - Microphone access and MediaRecorder API
+  - InputArea component with microphone button
+  - Visual feedback for recording state
+  - Error handling and user feedback
+- **Task 2.30:** Audio output (text-to-speech) with TTS-1
+  - `src/hooks/useTextToSpeech.ts` - Custom hook for TTS generation
+  - `functions/src/index.ts` - `/speech` Cloud Function endpoint
+  - OpenAI TTS-1 API integration
+  - Base64 audio decoding and playback
+  - Message component with play button
+  - Play/stop controls
+- **Task 2.31:** Auto-play audio for AI responses
+  - Auto-play triggers when new assistant message received
+  - Fixed React Hooks error (useCallback inside map)
+  - Removed excessive console logs
+  - Reduced message spacing for better UX
+  - Proper cleanup and error handling
 
 ### ✅ Day 2: Image Upload & Display (COMPLETED)
 - **Task 2.13-2.15:** Image upload functionality
@@ -108,8 +132,8 @@
 
 ## Current Status
 
-**Session:** Day 2 complete - Authentication, chat history, and image upload working  
-**Next Tasks:** Math rendering (Tasks 2.18-2.20), testing (Tasks 2.21-2.28)
+**Session:** Day 2 complete - Authentication, chat history, image upload, math rendering, and audio features all working  
+**Next Tasks:** Math rendering testing (Task 2.20), manual testing suite (Tasks 2.21-2.28)
 
 ---
 
@@ -117,21 +141,13 @@
 
 ### Next Immediate Steps (Day 2 - Afternoon Session)
 
-1. **Task 2.18:** Create math renderer utility
-   - `src/utils/mathRenderer.ts`
-   - Detect LaTeX patterns ($...$ and $$...$$)
-   - Parse and split text with math
-
-2. **Task 2.19:** Integrate KaTeX into Message component
-   - Update `Message.tsx` to render math
-   - Use InlineMath for $...$
-   - Use BlockMath for $$...$$
-
-3. **Task 2.20:** Test math rendering
+1. **Task 2.20:** Test math rendering ✅ NEXT
    - Test various math notations
    - Verify readability
+   - Test inline: $2x + 5 = 13$
+   - Test block: $$\frac{a}{b}$$
 
-4. **Task 2.21-2.27:** Manual testing suite
+2. **Task 2.21-2.27:** Manual testing suite
    - Test 5 problem types
    - Edge case testing
    - Bug fixes
@@ -192,11 +208,16 @@
 - [x] Text input works perfectly ✅
 - [x] Image upload works (sends directly to AI) ✅
 - [x] Images display in chat messages ✅
-- [ ] Math renders correctly in all messages - Not started (Task 2.18-2.20)
+- [x] Math renders correctly in all messages - Tasks 2.18-2.19 completed ✅ (Task 2.20 testing pending)
 - [x] Conversations persist across page refresh ✅
 - [ ] All 5 problem types tested and working - Not started
 - [ ] Edge cases handled gracefully - Partially tested
 - [x] No critical bugs ✅
+
+**Stretch Features Completed:**
+- [x] Voice input (speech-to-text) with Whisper-1 ✅
+- [x] Voice output (text-to-speech) with TTS-1 ✅
+- [x] Auto-play audio for AI responses ✅
 
 ---
 

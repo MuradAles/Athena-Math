@@ -13,6 +13,8 @@
 - **Vite** - Build tool and dev server
 - **KaTeX** + **react-katex** - Mathematical notation rendering
 - **CSS Custom Properties** - Theme support (light/dark)
+- **MediaRecorder API** - Browser-based audio recording
+- **Audio API** - Browser-based audio playback
 
 ### Backend
 - **Firebase Cloud Functions** - Serverless API endpoints
@@ -35,6 +37,14 @@
   - **OpenAI GPT-4o** - Messages with images (vision support, requires organization verification)
     - Used when messages contain images (OpenAI vision format)
     - Also used for image extraction (`extractProblem` function, currently not used)
+- **OpenAI Whisper-1** - Speech-to-text transcription
+  - Used for voice input via `/transcribe` Cloud Function
+  - Accepts base64-encoded audio (MP3, MP4, MPEG, MPGA, M4A, WAV, WEBM)
+  - Returns transcribed text
+- **OpenAI TTS-1** - Text-to-speech synthesis
+  - Used for voice output via `/speech` Cloud Function
+  - Accepts text and optional voice parameter (alloy, echo, fable, onyx, nova, shimmer)
+  - Returns base64-encoded MP3 audio
 
 ### Model Selection (Future Improvement)
 **Current:** GPT-4o-mini

@@ -2,7 +2,7 @@
 ## What Works & What's Left
 
 **Last Updated:** November 4, 2025  
-**Timeline:** Day 2 Complete - Full Functionality & Persistence
+**Timeline:** Day 2 Complete - Full Functionality & Persistence + Audio Features
 
 ---
 
@@ -53,17 +53,34 @@
 - ✅ Image extraction service created (not currently used)
 - ✅ OpenAI vision format support
 
-**Note:** Core functionality complete! Chat, authentication, persistence, and image upload all working.
+### Audio Features (Stretch)
+- ✅ Audio input (speech-to-text) with Whisper-1
+  - `useAudioRecording` hook for microphone recording
+  - `/transcribe` Cloud Function endpoint
+  - Microphone button in InputArea component
+  - Visual feedback for recording state
+- ✅ Audio output (text-to-speech) with TTS-1
+  - `useTextToSpeech` hook for TTS generation
+  - `/speech` Cloud Function endpoint
+  - Play button in Message component
+  - Auto-play audio for new AI responses
+- ✅ Auto-play audio implementation
+  - Fixed React Hooks error (useCallback inside map)
+  - Removed excessive console logs
+  - Reduced message spacing for better UX
+  - Proper cleanup and error handling
+
+**Note:** Core functionality complete! Chat, authentication, persistence, image upload, and audio features all working.
 
 ---
 
 ## 🚧 In Progress
 
 ### Day 2 - Afternoon Session (NEXT)
-- [ ] Math rendering (Tasks 2.18-2.20)
-  - Math renderer utility
-  - KaTeX integration
-  - Testing
+- [x] Math rendering (Tasks 2.18-2.19) ✅ COMPLETED
+  - Math renderer utility ✅
+  - KaTeX integration ✅
+  - [ ] Testing (Task 2.20) - Pending
 - [ ] Manual testing suite (Tasks 2.21-2.28)
   - Test 5 problem types
   - Edge case testing
@@ -116,13 +133,18 @@
 - [x] Text input works perfectly ✅
 - [x] Image upload works (sends directly to AI) ✅
 - [x] Images display in chat messages ✅
-- [ ] Math renders correctly in all messages - Not started
+- [x] Math renders correctly in all messages - Tasks 2.18-2.19 completed ✅ (Testing pending)
 - [x] Conversations persist across page refresh ✅
 - [ ] All 5 problem types tested and working - Not started
 - [ ] Edge cases handled gracefully - Partially tested
 - [x] No critical bugs ✅
 
-**Progress:** 5/8 (63%)
+**Progress:** 6/8 (75%)
+
+### Audio Features (Stretch Goals)
+- [x] Voice input (speech-to-text) ✅
+- [x] Voice output (text-to-speech) ✅
+- [x] Auto-play audio for AI responses ✅
 
 ### Overall Project Goals
 - [ ] Successfully guides students through 5+ different problem types
@@ -149,6 +171,10 @@
 - ⚠️ **Validation Issue:** AI sometimes affirms wrong answers (e.g., "(2x - 6)(2x - 6)" for factoring problem)
 - **Solution:** Strengthen validation protocol (immediate) + switch model later (GPT-5-mini or GPT-4o) if needed
 - **Priority:** Focus on validation improvements first, model switching deferred to project completion
+
+**Fixed:**
+- ✅ **Auto-play audio not working:** Fixed React Hooks error (useCallback inside map), removed excessive console logs, reduced message spacing
+- ✅ **React Hooks error:** Removed useCallback from inside map function, used inline function instead
 
 ---
 

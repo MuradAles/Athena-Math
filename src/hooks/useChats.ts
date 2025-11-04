@@ -80,14 +80,16 @@ export const useChats = (userId: string | null): UseChatsReturn => {
 
       try {
         const chatId = await createChat(userId, problem);
-        await loadChats(); // Refresh chat list
+        // Silently refresh without showing loading
+        const userChats = await getUserChats(userId);
+        setChats(userChats);
         return chatId;
       } catch (error) {
         console.error('Error creating chat:', error);
         throw error;
       }
     },
-    [userId, loadChats]
+    [userId]
   );
 
   // Load a specific chat
@@ -147,15 +149,23 @@ export const useChats = (userId: string | null): UseChatsReturn => {
     async (chatId: string) => {
       if (!userId) return;
 
+      // Optimistically remove from list
+      setChats((prevChats) => prevChats.filter((chat) => chat.id !== chatId));
+      
+      if (currentChatId === chatId) {
+        setCurrentChat(null);
+        setCurrentChatId(null);
+      }
+
       try {
         await deleteChat(userId, chatId);
-        if (currentChatId === chatId) {
-          setCurrentChat(null);
-          setCurrentChatId(null);
-        }
-        await loadChats(); // Refresh chat list
+        // Silently refresh to ensure consistency without showing loading
+        const userChats = await getUserChats(userId);
+        setChats(userChats);
       } catch (error) {
         console.error('Error deleting chat:', error);
+        // Revert on error by reloading
+        await loadChats();
         throw error;
       }
     },

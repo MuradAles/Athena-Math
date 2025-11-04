@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/fabric": "^5.3.10",
+    "fabric": "^6.7.1",
     "firebase": "^12.5.0",
     "katex": "^0.16.25",
     "openai": "^6.7.0",

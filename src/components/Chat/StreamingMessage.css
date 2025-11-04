@@ -4,9 +4,9 @@
  */
 
 .streaming-message {
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-sm);
-  border-radius: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-xs);
+  border-radius: var(--border-radius-md);
 }
 
 .streaming-message.assistant-message {
@@ -33,7 +33,7 @@
   color: var(--color-text);
   white-space: pre-wrap;
   word-wrap: break-word;
-  line-height: 1.6;
+  line-height: var(--line-height-normal);
 }
 
 .streaming-cursor {

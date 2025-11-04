@@ -39,6 +39,7 @@
   min-width: 40px;
   height: 40px;
   transition: all var(--transition-base);
+  color: white;
 }
 
 .input-area__upload-btn:hover:not(:disabled) {
@@ -47,6 +48,48 @@
 }
 
 .input-area__upload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.input-area__mic-btn {
+  padding: var(--spacing-sm);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  font-size: var(--font-size-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  transition: all var(--transition-base);
+  color: white;
+}
+
+.input-area__mic-btn:hover:not(:disabled) {
+  background-color: var(--color-background);
+  border-color: var(--color-primary);
+}
+
+.input-area__mic-btn--recording {
+  background-color: var(--color-error);
+  border-color: var(--color-error);
+  color: white;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.input-area__mic-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -62,6 +105,19 @@
   border-radius: var(--border-radius-md);
   resize: none;
   font-family: var(--font-family-sans);
+  min-height: 40px;
+  max-height: 120px;
+  overflow-y: auto;
+  /* Ensure multiple lines are visible */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  /* Hide scrollbar */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.input-area__textarea::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .input-area__textarea:focus {

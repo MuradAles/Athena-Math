@@ -418,13 +418,13 @@ Each day has clear objectives and deliverables. Tasks are ordered by priority an
 ### Afternoon Session (4-5 hours)
 
 #### Math Rendering
-- [ ] **Task 2.18:** Create math renderer utility (30 min)
+- [x] **Task 2.18:** Create math renderer utility (30 min) ✅ COMPLETED
   - `src/utils/mathRenderer.ts`
   - Function to detect LaTeX patterns ($...$ and $$...$$)
   - Parse and split text with math
   - Return structured data for rendering
 
-- [ ] **Task 2.19:** Integrate KaTeX into Message (45 min)
+- [x] **Task 2.19:** Integrate KaTeX into Message (45 min) ✅ COMPLETED
   - Update `Message.tsx` component
   - Import react-katex and CSS
   - Use InlineMath for $...$
@@ -499,11 +499,38 @@ Each day has clear objectives and deliverables. Tasks are ordered by priority an
 - [x] Text input works perfectly ✅
 - [x] Image upload works (sends directly to AI) ✅
 - [x] Images display in chat messages ✅
-- [ ] Math renders correctly in all messages - Not started (Task 2.18-2.20)
+- [x] Math renders correctly in all messages - Tasks 2.18-2.19 completed ✅ (Task 2.20 testing pending)
 - [x] Conversations persist across page refresh ✅
 - [ ] All 5 problem types tested and working - Not started
 - [ ] Edge cases handled gracefully - Partially tested
 - [x] No critical bugs ✅
+
+**Day 2 Stretch Features (Completed):**
+- [x] **Task 2.29:** Audio input (speech-to-text) with Whisper-1 ✅ COMPLETED
+  - `src/hooks/useAudioRecording.ts` - Custom hook for microphone recording
+  - `functions/src/index.ts` - `/transcribe` Cloud Function endpoint
+  - OpenAI Whisper-1 API integration
+  - Base64 audio encoding/decoding
+  - Microphone access and MediaRecorder API
+  - InputArea component with microphone button
+  - Visual feedback for recording state
+  - Error handling and user feedback
+
+- [x] **Task 2.30:** Audio output (text-to-speech) with TTS-1 ✅ COMPLETED
+  - `src/hooks/useTextToSpeech.ts` - Custom hook for TTS generation
+  - `functions/src/index.ts` - `/speech` Cloud Function endpoint
+  - OpenAI TTS-1 API integration
+  - Base64 audio decoding and playback
+  - Message component with play button
+  - Auto-play audio for new AI responses
+  - Play/stop controls
+
+- [x] **Task 2.31:** Auto-play audio for AI responses ✅ COMPLETED
+  - Auto-play triggers when new assistant message received
+  - Fixed React Hooks error (useCallback inside map)
+  - Removed excessive console logs
+  - Reduced message spacing for better UX
+  - Proper cleanup and error handling
 
 ---
 
@@ -904,7 +931,7 @@ Each day has clear objectives and deliverables. Tasks are ordered by priority an
 - [ ] Add problem difficulty rating
 - [ ] Add export conversation feature
 - [ ] Add share conversation link
-- [ ] Add voice input/output
+- [x] Add voice input/output ✅ COMPLETED (Tasks 2.29-2.31)
 - [ ] Add handwriting recognition
 - [ ] Add multi-language support
 

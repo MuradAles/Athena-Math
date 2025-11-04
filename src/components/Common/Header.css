@@ -31,6 +31,42 @@
   gap: var(--spacing-md);
 }
 
+.header-whiteboard-btn {
+  padding: 8px 12px;
+  border: 1px solid #d0d0d0;
+  background: #ffffff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+  min-width: 40px;
+  height: 40px;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative;
+  z-index: 10;
+}
+
+.header-whiteboard-btn:hover {
+  background: var(--color-background);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.header-whiteboard-btn.active {
+  background: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+}
+
+.header-whiteboard-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
 .header-email {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);

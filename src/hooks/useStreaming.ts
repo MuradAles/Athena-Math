@@ -61,8 +61,6 @@ export const useStreaming = () => {
       }
       
       // Use fetch for POST request with streaming
-      console.log('Starting stream to:', functionUrl);
-      console.log('Sending messages:', messages.length, 'messages');
       
       const response = await fetch(functionUrl, {
         method: 'POST',
@@ -77,7 +75,6 @@ export const useStreaming = () => {
         signal,
       });
 
-      console.log('Response status:', response.status, response.statusText);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -95,19 +92,14 @@ export const useStreaming = () => {
       const decoder = new TextDecoder();
       let buffer = '';
       let accumulatedMessage = ''; // Track accumulated message for onComplete
-      let chunkCount = 0;
 
-      console.log('Starting to read stream...');
 
       while (true) {
         const { done, value } = await reader.read();
 
         if (done) {
-          console.log('Stream reading done. Total chunks:', chunkCount);
           break;
         }
-
-        chunkCount++;
         
         // Decode chunk
         const decoded = decoder.decode(value, { stream: true });
@@ -135,10 +127,8 @@ export const useStreaming = () => {
 
               if (data.done) {
                 // Stream completed
-                console.log('Stream done signal received');
                 setIsStreaming(false);
                 if (onComplete) {
-                  console.log('Calling onComplete with message length:', accumulatedMessage.length);
                   onComplete(accumulatedMessage);
                 }
                 return;
@@ -148,9 +138,6 @@ export const useStreaming = () => {
                 // Append content chunk
                 accumulatedMessage += data.content;
                 setStreamingMessage(accumulatedMessage);
-                if (chunkCount <= 5 || chunkCount % 10 === 0) {
-                  console.log(`Chunk ${chunkCount}:`, data.content.substring(0, 50) + '...');
-                }
               }
             } catch (parseError) {
               // Log parsing errors for debugging
@@ -158,19 +145,15 @@ export const useStreaming = () => {
             }
           } else if (line.trim()) {
             // Log non-data lines for debugging
-            console.log('Non-data line:', line.substring(0, 100));
           }
         }
       }
 
       // Stream completed normally
-      console.log('Stream reading finished. Final message length:', accumulatedMessage.length);
       setIsStreaming(false);
       if (onComplete && accumulatedMessage) {
-        console.log('Calling onComplete (normal completion)');
         onComplete(accumulatedMessage);
       } else if (!accumulatedMessage) {
-        console.warn('Stream completed but no message accumulated!');
         setError('Stream completed but received no content');
       }
     } catch (err) {

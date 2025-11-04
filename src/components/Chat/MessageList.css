@@ -11,6 +11,9 @@
   width: 100%;
   display: flex;
   justify-content: center;
+  scroll-behavior: auto;
+  /* Prevent scroll on focus/click */
+  overscroll-behavior: contain;
 }
 
 /* Custom scrollbar - hide track, show only thumb */
