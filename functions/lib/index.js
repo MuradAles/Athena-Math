@@ -47,7 +47,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.speech = exports.transcribe = exports.extractProblem = exports.chat = void 0;
+exports.speech = exports.extractTopic = exports.transcribe = exports.extractProblem = exports.chat = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
 const openai_1 = __importDefault(require("openai"));
@@ -65,19 +65,6 @@ function getOpenAIClient() {
     return new openai_1.default({
         apiKey,
     });
-}
-/**
- * Get system prompt with optional problem context
- */
-function getSystemPrompt(problem, problemContext) {
-    let prompt = prompts_1.SOCRATIC_TUTOR_PROMPT;
-    if (problem) {
-        prompt += `\n\nStudent's problem: ${problem}`;
-    }
-    if (problemContext) {
-        prompt += `\n\nContext: ${problemContext}`;
-    }
-    return prompt;
 }
 /**
  * Execute math tool function based on function name and arguments
@@ -152,7 +139,7 @@ exports.chat = (0, https_1.onRequest)({
     maxInstances: 10,
 }, async (req, res) => {
     var _a, e_1, _b, _c, _d, e_2, _e, _f;
-    var _g, _h, _j, _k, _l, _m, _o, _p, _q;
+    var _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
     // Set CORS headers
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -179,7 +166,7 @@ exports.chat = (0, https_1.onRequest)({
         const conversationMessages = [
             {
                 role: "system",
-                content: getSystemPrompt(problem, problemContext),
+                content: (0, prompts_1.getSystemPrompt)(problem, problemContext),
             },
             // Only send last 8 messages for cost optimization
             ...messages.slice(-8).map((msg) => ({
@@ -193,11 +180,10 @@ exports.chat = (0, https_1.onRequest)({
         res.setHeader("Connection", "keep-alive");
         // Get OpenAI client (initialized when function is called)
         const openai = getOpenAIClient();
-        // Check if any message has image content (for vision support)
-        const hasImages = conversationMessages.some((msg) => Array.isArray(msg.content) && msg.content.some((item) => item.type === 'image_url'));
-        // Use gpt-4o for vision support (images), fallback to gpt-4o-mini for text-only
-        const model = hasImages ? "gpt-4o" : "gpt-4o-mini";
-        v2_1.logger.info(`Creating OpenAI stream with model: ${model}`);
+        // Always use GPT-4o for better accuracy and mathematical reasoning
+        // GPT-4o provides superior math accuracy compared to GPT-4o-mini
+        const model = "gpt-4o";
+        v2_1.logger.info(`Creating OpenAI stream with model: ${model} (GPT-4o for improved accuracy)`);
         v2_1.logger.info(`Sending ${conversationMessages.length} messages to OpenAI`);
         // Create OpenAI stream with tools
         const stream = await openai.chat.completions.create({
@@ -219,9 +205,9 @@ exports.chat = (0, https_1.onRequest)({
         let finishReason = "";
         let toolCallId = "";
         try {
-            for (var _r = true, stream_1 = __asyncValues(stream), stream_1_1; stream_1_1 = await stream_1.next(), _a = stream_1_1.done, !_a; _r = true) {
+            for (var _s = true, stream_1 = __asyncValues(stream), stream_1_1; stream_1_1 = await stream_1.next(), _a = stream_1_1.done, !_a; _s = true) {
                 _c = stream_1_1.value;
-                _r = false;
+                _s = false;
                 const chunk = _c;
                 chunkCount++;
                 const choice = chunk.choices[0];
@@ -256,19 +242,67 @@ exports.chat = (0, https_1.onRequest)({
         catch (e_1_1) { e_1 = { error: e_1_1 }; }
         finally {
             try {
-                if (!_r && !_a && (_b = stream_1.return)) await _b.call(stream_1);
+                if (!_s && !_a && (_b = stream_1.return)) await _b.call(stream_1);
             }
             finally { if (e_1) throw e_1.error; }
         }
         v2_1.logger.info(`Stream completed. Processed ${chunkCount} chunks. Finish reason: ${finishReason}`);
         // Handle function calls if detected
+        // IMPORTANT: Tool calls happen during streaming, so we need to send tool results
+        // as they occur, not just at the end. But for now, we handle them at the end.
         if (finishReason === "tool_calls" && functionCallName && functionCallArgs) {
             try {
                 v2_1.logger.info(`Function call detected: ${functionCallName} with args: ${functionCallArgs}`);
-                // Parse function arguments
-                const args = JSON.parse(functionCallArgs);
+                // Clean function arguments - remove any trailing whitespace or invalid characters
+                let cleanedArgs = functionCallArgs.trim();
+                // Try to find valid JSON in the string (in case there's extra text)
+                // Look for the first complete JSON object
+                let jsonStart = cleanedArgs.indexOf('{');
+                let jsonEnd = cleanedArgs.lastIndexOf('}');
+                if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+                    cleanedArgs = cleanedArgs.substring(jsonStart, jsonEnd + 1);
+                }
+                // Additional cleaning: remove any trailing commas or invalid characters
+                // Try to find the last valid closing brace
+                let braceCount = 0;
+                let validEnd = -1;
+                for (let i = 0; i < cleanedArgs.length; i++) {
+                    if (cleanedArgs[i] === '{')
+                        braceCount++;
+                    if (cleanedArgs[i] === '}') {
+                        braceCount--;
+                        if (braceCount === 0) {
+                            validEnd = i;
+                            break;
+                        }
+                    }
+                }
+                if (validEnd !== -1) {
+                    cleanedArgs = cleanedArgs.substring(0, validEnd + 1);
+                }
+                v2_1.logger.info(`Cleaned function args (length ${cleanedArgs.length}): ${cleanedArgs.substring(0, 200)}...`);
+                // Try to parse - if it fails, log the exact string for debugging
+                let args;
+                try {
+                    args = JSON.parse(cleanedArgs);
+                }
+                catch (parseError) {
+                    v2_1.logger.error(`JSON parse error. Raw string: ${functionCallArgs}`);
+                    v2_1.logger.error(`Cleaned string: ${cleanedArgs}`);
+                    v2_1.logger.error(`Parse error: ${parseError}`);
+                    throw parseError;
+                }
                 // Execute function
                 const functionResult = await executeMathTool(functionCallName, args);
+                // Send tool call result to client for progress tracking
+                // This allows client to detect correctness from tool results, not text parsing
+                res.write(`data: ${JSON.stringify({
+                    tool_call: {
+                        name: functionCallName,
+                        args: args,
+                        result: functionResult,
+                    }
+                })}\n\n`);
                 // Use actual tool call ID or generate one
                 const actualToolCallId = toolCallId || `call_${Date.now()}`;
                 // Add function result to conversation
@@ -300,34 +334,111 @@ exports.chat = (0, https_1.onRequest)({
                     frequency_penalty: 0.5,
                     presence_penalty: 0.3,
                 });
+                // Stream the continued response
+                let continueFinishReason = "";
+                let continueFunctionCallName = "";
+                let continueFunctionCallArgs = "";
                 try {
-                    // Stream the continued response
-                    for (var _s = true, continueStream_1 = __asyncValues(continueStream), continueStream_1_1; continueStream_1_1 = await continueStream_1.next(), _d = continueStream_1_1.done, !_d; _s = true) {
+                    for (var _t = true, continueStream_1 = __asyncValues(continueStream), continueStream_1_1; continueStream_1_1 = await continueStream_1.next(), _d = continueStream_1_1.done, !_d; _t = true) {
                         _f = continueStream_1_1.value;
-                        _s = false;
+                        _t = false;
                         const chunk = _f;
-                        const delta = (_o = (_m = chunk.choices[0]) === null || _m === void 0 ? void 0 : _m.delta) === null || _o === void 0 ? void 0 : _o.content;
+                        const choice = chunk.choices[0];
+                        // Check finish reason
+                        if (choice === null || choice === void 0 ? void 0 : choice.finish_reason) {
+                            continueFinishReason = choice.finish_reason;
+                        }
+                        // Handle function calls in continue stream
+                        if ((_m = choice === null || choice === void 0 ? void 0 : choice.delta) === null || _m === void 0 ? void 0 : _m.tool_calls) {
+                            const toolCall = (_o = choice.delta.tool_calls) === null || _o === void 0 ? void 0 : _o[0];
+                            if (toolCall) {
+                                if ((_p = toolCall.function) === null || _p === void 0 ? void 0 : _p.name) {
+                                    continueFunctionCallName = toolCall.function.name;
+                                }
+                                if ((_q = toolCall.function) === null || _q === void 0 ? void 0 : _q.arguments) {
+                                    continueFunctionCallArgs += toolCall.function.arguments;
+                                }
+                            }
+                        }
+                        const delta = (_r = choice === null || choice === void 0 ? void 0 : choice.delta) === null || _r === void 0 ? void 0 : _r.content;
                         if (delta) {
                             res.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
-                        }
-                        // Check for additional function calls (recursive handling)
-                        if ((_q = (_p = chunk.choices[0]) === null || _p === void 0 ? void 0 : _p.delta) === null || _q === void 0 ? void 0 : _q.tool_calls) {
-                            // For simplicity, we'll handle one level of function calls
-                            // Multiple nested calls would need more complex handling
                         }
                     }
                 }
                 catch (e_2_1) { e_2 = { error: e_2_1 }; }
                 finally {
                     try {
-                        if (!_s && !_d && (_e = continueStream_1.return)) await _e.call(continueStream_1);
+                        if (!_t && !_d && (_e = continueStream_1.return)) await _e.call(continueStream_1);
                     }
                     finally { if (e_2) throw e_2.error; }
+                }
+                // Handle tool calls in continue stream if any
+                if (continueFinishReason === "tool_calls" && continueFunctionCallName && continueFunctionCallArgs) {
+                    try {
+                        v2_1.logger.info(`Function call detected in continue stream: ${continueFunctionCallName}`);
+                        // Clean function arguments - remove any trailing whitespace or invalid characters
+                        let cleanedArgs = continueFunctionCallArgs.trim();
+                        // Try to find valid JSON in the string (in case there's extra text)
+                        let jsonStart = cleanedArgs.indexOf('{');
+                        let jsonEnd = cleanedArgs.lastIndexOf('}');
+                        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+                            cleanedArgs = cleanedArgs.substring(jsonStart, jsonEnd + 1);
+                        }
+                        // Additional cleaning: remove any trailing commas or invalid characters
+                        // Try to find the last valid closing brace
+                        let braceCount = 0;
+                        let validEnd = -1;
+                        for (let i = 0; i < cleanedArgs.length; i++) {
+                            if (cleanedArgs[i] === '{')
+                                braceCount++;
+                            if (cleanedArgs[i] === '}') {
+                                braceCount--;
+                                if (braceCount === 0) {
+                                    validEnd = i;
+                                    break;
+                                }
+                            }
+                        }
+                        if (validEnd !== -1) {
+                            cleanedArgs = cleanedArgs.substring(0, validEnd + 1);
+                        }
+                        v2_1.logger.info(`Cleaned continue stream args (length ${cleanedArgs.length}): ${cleanedArgs.substring(0, 200)}...`);
+                        // Try to parse - if it fails, log the exact string for debugging
+                        let args;
+                        try {
+                            args = JSON.parse(cleanedArgs);
+                        }
+                        catch (parseError) {
+                            v2_1.logger.error(`JSON parse error in continue stream. Raw string: ${continueFunctionCallArgs}`);
+                            v2_1.logger.error(`Cleaned string: ${cleanedArgs}`);
+                            v2_1.logger.error(`Parse error: ${parseError}`);
+                            throw parseError;
+                        }
+                        const functionResult = await executeMathTool(continueFunctionCallName, args);
+                        // Send tool call result to client
+                        res.write(`data: ${JSON.stringify({
+                            tool_call: {
+                                name: continueFunctionCallName,
+                                args: args,
+                                result: functionResult,
+                            }
+                        })}\n\n`);
+                    }
+                    catch (error) {
+                        v2_1.logger.error(`Error handling function call in continue stream: ${error}`);
+                        v2_1.logger.error(`Raw continueFunctionCallArgs (length ${continueFunctionCallArgs.length}): ${continueFunctionCallArgs}`);
+                        v2_1.logger.error(`Function name: ${continueFunctionCallName}`);
+                    }
                 }
             }
             catch (error) {
                 v2_1.logger.error(`Error handling function call: ${error}`);
-                res.write(`data: ${JSON.stringify({ error: `Function call error: ${error}` })}\n\n`);
+                v2_1.logger.error(`Raw functionCallArgs (length ${functionCallArgs.length}): ${functionCallArgs}`);
+                v2_1.logger.error(`Function name: ${functionCallName}`);
+                // Send error to client but continue stream
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                res.write(`data: ${JSON.stringify({ error: `Function call error: ${errorMessage}` })}\n\n`);
             }
         }
         // Send completion event
@@ -492,6 +603,102 @@ exports.transcribe = (0, https_1.onRequest)({
     }
     catch (error) {
         v2_1.logger.error("Error in transcribe function:", error);
+        const errorMessage = error instanceof Error
+            ? error.message
+            : "An unknown error occurred";
+        res.status(500).json({ error: errorMessage });
+    }
+});
+/**
+ * HTTP Cloud Function for extracting topic and difficulty from math problem
+ *
+ * POST /extract-topic
+ * Body: { problem: string }
+ *
+ * Returns: { topic: string, subTopic?: string, difficulty: string } - Topic metadata
+ */
+exports.extractTopic = (0, https_1.onRequest)({
+    cors: true,
+    timeoutSeconds: 60,
+    maxInstances: 10,
+}, async (req, res) => {
+    var _a, _b, _c;
+    // Handle CORS preflight
+    if (req.method === "OPTIONS") {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        res.status(204).end();
+        return;
+    }
+    // Set CORS headers
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    // Only allow POST requests
+    if (req.method !== "POST") {
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+    try {
+        const { problem } = req.body;
+        // Validate request body
+        if (!problem || typeof problem !== "string") {
+            res.status(400).json({ error: "Invalid request: problem required" });
+            return;
+        }
+        // Get OpenAI client
+        const openai = getOpenAIClient();
+        v2_1.logger.info("Extracting topic and difficulty from problem...");
+        // Use GPT-4o to analyze problem and extract topic/difficulty
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are a math problem analyzer. Analyze the given math problem and return ONLY a JSON object with:
+- topic: The main math topic (e.g., "algebra", "geometry", "calculus", "arithmetic", "trigonometry")
+- subTopic: A specific sub-topic within the main topic (e.g., "linear_equations", "quadratic_equations", "triangles", "circles", "derivatives", "integrals"). Be specific.
+- difficulty: "easy", "medium", or "hard" based on the problem complexity
+
+Return ONLY valid JSON, no other text. Example format:
+{"topic": "algebra", "subTopic": "linear_equations", "difficulty": "medium"}`,
+                },
+                {
+                    role: "user",
+                    content: `Analyze this math problem and return the topic, subTopic, and difficulty:\n\n${problem}`,
+                },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.3, // Lower temperature for more consistent topic extraction
+            max_tokens: 200,
+        });
+        const content = (_c = (_b = (_a = response.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) === null || _c === void 0 ? void 0 : _c.trim();
+        if (!content) {
+            res.status(400).json({ error: "Could not extract topic from problem" });
+            return;
+        }
+        // Parse JSON response
+        const topicData = JSON.parse(content);
+        // Validate response structure
+        if (!topicData.topic || !topicData.difficulty) {
+            res.status(400).json({ error: "Invalid topic extraction response" });
+            return;
+        }
+        // Validate difficulty
+        if (!["easy", "medium", "hard"].includes(topicData.difficulty)) {
+            topicData.difficulty = "medium"; // Default to medium if invalid
+        }
+        v2_1.logger.info("Topic extracted successfully:", topicData);
+        // Return topic metadata
+        res.json({
+            topic: topicData.topic,
+            subTopic: topicData.subTopic || null,
+            difficulty: topicData.difficulty,
+        });
+    }
+    catch (error) {
+        v2_1.logger.error("Error in extractTopic function:", error);
         const errorMessage = error instanceof Error
             ? error.message
             : "An unknown error occurred";

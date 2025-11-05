@@ -7,6 +7,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChats } from '../../hooks/useChats';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { clearProblemContext } from '../../utils/storage';
 import './ChatList.css';
 
 interface ChatListProps {
@@ -24,6 +25,10 @@ export const ChatList = ({ activeChatId, onSelectChat }: ChatListProps) => {
 
   const handleNewChat = async () => {
     try {
+      // Clear problem context when creating a new chat
+      // Each new chat should be independent and not use context from other chats
+      clearProblemContext();
+      
       const chatId = await createNewChat();
       onSelectChat(chatId);
     } catch (error) {

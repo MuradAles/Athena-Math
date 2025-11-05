@@ -12,9 +12,10 @@ interface MessageListProps {
   messages: MessageType[];
   streamingMessage?: React.ReactNode | null;
   chatId?: string | null; // Track chat ID to reset when switching chats
+  correctAnswerMessageIds?: Set<string>; // Set of message IDs that indicate correct answers
 }
 
-export const MessageList = ({ messages, streamingMessage, chatId }: MessageListProps) => {
+export const MessageList = ({ messages, streamingMessage, chatId, correctAnswerMessageIds = new Set() }: MessageListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -152,6 +153,7 @@ export const MessageList = ({ messages, streamingMessage, chatId }: MessageListP
               key={message.id} 
               message={message} 
               isNew={shouldAutoPlay}
+              isCorrectAnswer={correctAnswerMessageIds.has(message.id)}
               onAutoPlayComplete={
                 shouldAutoPlay
                   ? () => {

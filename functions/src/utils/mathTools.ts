@@ -690,12 +690,42 @@ export function validateAnswer(
     let correctAnswer = "";
     
     if (problemType === "algebra" || problemType === "linear_equation") {
-      // Extract variable (usually x)
+      // Extract variable (usually x or t)
       const variableMatch = problem.match(/([a-z])/i);
       const variable = variableMatch ? variableMatch[1] : "x";
       
+      // Solve the ORIGINAL problem to get correct answer
       const solution = solveLinearEquation(problem, variable);
       correctAnswer = solution.solution;
+      
+      // Also check if student's answer is a rearrangement - if so, solve it too
+      // If student provides a rearranged equation (e.g., "16 - 9 = 5t + 2t"), 
+      // check if it's equivalent by solving it and comparing
+      if (studentAnswer.includes("=") && studentAnswer !== problem) {
+        try {
+          // Try to solve the student's rearranged equation
+          const studentSolution = solveLinearEquation(studentAnswer, variable);
+          const studentAnswerValue = studentSolution.solution;
+          
+          // Compare the solutions - if they match, the rearrangement is correct
+          const correctValue = parseFloat(correctAnswer);
+          const studentValue = parseFloat(studentAnswerValue);
+          
+          if (!isNaN(correctValue) && !isNaN(studentValue)) {
+            // If solutions match, the rearrangement is mathematically equivalent
+            return {
+              is_correct: Math.abs(correctValue - studentValue) < 0.0001,
+              correct_answer: correctAnswer,
+              error: Math.abs(correctValue - studentValue) >= 0.0001 
+                ? `The rearrangement is not equivalent. Correct solution: ${variable} = ${correctAnswer}` 
+                : undefined,
+            };
+          }
+        } catch (error) {
+          // If we can't solve student's equation, it might be invalid
+          // Fall through to normal validation
+        }
+      }
     } else if (problemType === "arithmetic" || problemType === "expression") {
       // For arithmetic, evaluate the expression
       const result = evaluateExpression(problem);

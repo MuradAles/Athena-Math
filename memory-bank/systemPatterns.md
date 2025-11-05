@@ -326,5 +326,43 @@ onSendCanvas(imageUrl, 'Here is my whiteboard:');
 
 **Why:** Enables AI to analyze visual annotations, supports geometry problems
 
-**Document Status:** Architecture patterns established, full functionality implemented with authentication, persistence, image support, math tools validation, and whiteboard integration
+### 10. Gamification & Progress Tracking Pattern
+**Pattern:** Unified gamification system with achievement tracking and progress monitoring
+
+```typescript
+// Gamification hook combines all features
+const { 
+  streak, 
+  trackCorrectAnswer, 
+  trackWrongAnswer,
+  newlyEarnedAchievement 
+} = useGamification(userId);
+
+// Progress tracking integrated into chat flow
+await trackCorrectAnswer(chatId, problem, hintsUsed, questionsAsked);
+```
+
+**Why:** Provides motivation through achievements and streaks, enables parent visibility through progress tracking, creates engaging learning experience
+
+### 11. Progress Data Structure Pattern
+**Pattern:** Hierarchical progress data with topic-based aggregation
+
+```typescript
+// Firestore structure
+users/{userId}/progress/{topicId}/attempts/{attemptId}
+users/{userId}/progress/{topicId}/aggregated
+
+// Progress event tracking
+{
+  topic: string,
+  wasCorrect: boolean,
+  hintsUsed: number,
+  attemptsBeforeCorrect: number,
+  questionsPerProblem: number
+}
+```
+
+**Why:** Enables efficient aggregation by topic, supports parent dashboard, allows trend analysis and topic mastery tracking
+
+**Document Status:** Architecture patterns established, full functionality implemented with authentication, persistence, image support, math tools validation, whiteboard integration, gamification, and progress tracking
 

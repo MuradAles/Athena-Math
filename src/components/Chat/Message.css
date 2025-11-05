@@ -14,6 +14,7 @@
   /* Prevent scroll on click/focus */
   scroll-margin: 0;
   scroll-snap-align: none;
+  position: relative;
 }
 
 .message--user {
@@ -28,6 +29,11 @@
   background-color: var(--color-surface);
   color: var(--color-text);
   border-bottom-left-radius: var(--border-radius-sm);
+}
+
+.message--correct {
+  background: linear-gradient(135deg, var(--color-surface) 0%, rgba(22, 163, 74, 0.1) 100%);
+  border: 2px solid var(--color-success);
 }
 
 .message--system {

@@ -5,11 +5,18 @@
 
 import { useState, useCallback, useRef } from 'react';
 
+export interface ToolCall {
+  name: string;
+  args: any;
+  result: any;
+}
+
 interface StartStreamOptions {
   messages: Array<{ role: string; content: string | Array<{ type: string; text?: string; image_url?: { url: string } }> }>;
   problem?: string;
   problemContext?: string;
   onComplete?: (message: string) => void;
+  onToolCall?: (toolCall: ToolCall) => void;
 }
 
 /**
@@ -34,6 +41,7 @@ export const useStreaming = () => {
     problem,
     problemContext,
     onComplete,
+    onToolCall,
   }: StartStreamOptions): Promise<void> => {
     // Reset state
     setStreamingMessage('');
@@ -138,6 +146,17 @@ export const useStreaming = () => {
                 // Append content chunk
                 accumulatedMessage += data.content;
                 setStreamingMessage(accumulatedMessage);
+              }
+
+              // Handle tool call results
+              if (data.tool_call) {
+                console.log('🔧 [useStreaming] Tool call received:', data.tool_call);
+                if (onToolCall) {
+                  console.log('🔧 [useStreaming] Calling onToolCall callback');
+                  onToolCall(data.tool_call);
+                } else {
+                  console.warn('⚠️ [useStreaming] onToolCall callback not provided!');
+                }
               }
             } catch (parseError) {
               // Log parsing errors for debugging

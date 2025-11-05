@@ -23,5 +23,45 @@ service cloud.firestore {
     match /users/{userId}/chats {
       allow read, write: if isOwner(userId);
     }
+    
+    // Progress tracking - Allow users to query their own progress collection
+    match /users/{userId}/progress {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Progress tracking - users can only read/write their own progress
+    match /users/{userId}/progress/{topicId} {
+      allow read, write: if isOwner(userId);
+      
+      // Attempts within a topic
+      match /attempts/{attemptId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // Aggregated progress within a topic
+      match /aggregated/{aggregatedId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // Achievements - users can only read/write their own achievements
+    match /users/{userId}/achievements/{achievementId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Achievements collection query
+    match /users/{userId}/achievements {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Sessions - users can only read/write their own sessions
+    match /users/{userId}/sessions/{sessionId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Sessions collection query
+    match /users/{userId}/sessions {
+      allow read, write: if isOwner(userId);
+    }
   }
 }

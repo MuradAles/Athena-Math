@@ -392,13 +392,13 @@ export const MATH_TOOL_SCHEMAS: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "evaluate_expression",
-      description: "MANDATORY: Evaluate an arithmetic or algebraic expression. Use ALWAYS when student provides ANY arithmetic calculation (e.g., '100 - 36', '5 * 7', '2^3') or when you need to check if a calculation is correct. Examples: If student says '100 - 36 = 74', call evaluate_expression('100 - 36') to verify the result is 64, not 74. NEVER trust your own calculations - ALWAYS use this tool.",
+      description: "MANDATORY: Evaluate an arithmetic or algebraic expression. YOU CANNOT CALCULATE - YOU MUST USE THIS TOOL. Use ALWAYS when: (1) Student provides ANY arithmetic calculation (e.g., '100 - 36', '5 * 7', '2^3', '10^2 - 6^2'), (2) You need to check if a calculation is correct, (3) You guide through steps and encounter arithmetic (e.g., 'x² = 10² - 6²'), (4) Before responding with ANY numerical result. Examples: If student says '100 - 36 = 74', call evaluate_expression('100 - 36') to verify the result is 64, not 74. If you guide 'x² = 10² - 6²', you MUST call evaluate_expression('10^2 - 6^2') BEFORE responding. NEVER trust your own calculations - ALWAYS use this tool. NEVER calculate mentally.",
       parameters: {
         type: "object",
         properties: {
           expression: {
             type: "string",
-            description: "The expression to evaluate (e.g., '100 - 36', '5 * 7', '2^3', '2 + 3 * 4')",
+            description: "The expression to evaluate (e.g., '100 - 36', '5 * 7', '2^3', '10^2 - 6^2', 'sqrt(64)'). Use ^ for exponents, e.g., '10^2' for 10².",
           },
         },
         required: ["expression"],
@@ -440,7 +440,7 @@ export const MATH_TOOL_SCHEMAS: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "validate_answer",
-      description: "MANDATORY: Validate a student's answer against the correct solution. Use ALWAYS when student provides ANY numerical answer or calculation result. This is CRITICAL for accurate feedback. Examples: If student says '100 - 36 = 74', call validate_answer with problem='100 - 36', student_answer='74', problem_type='arithmetic'. If student says 'x = 4', call validate_answer with the original problem. NEVER proceed without validating.",
+      description: "MANDATORY - CRITICAL: You MUST call this tool EVERY TIME a student provides ANY answer, numerical result, calculation, or solution. This is NOT optional - it is REQUIRED. Examples: If student says '100 - 36 = 64', you MUST call validate_answer with problem='100 - 36', student_answer='64', problem_type='arithmetic'. If student says 'x = 5', you MUST call validate_answer with the original problem. If student says 'c = 10' for a Pythagorean theorem problem, you MUST call validate_answer with the original problem and student_answer='c = 10'. If you call solve_pythagorean_theorem to understand the problem, you MUST STILL call validate_answer to check if the student's answer is correct. NEVER skip this tool when student provides an answer. NEVER agree with student's answer without calling this tool first. This is the ONLY way to accurately detect if student is correct.",
       parameters: {
         type: "object",
         properties: {

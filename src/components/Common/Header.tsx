@@ -1,17 +1,34 @@
 /**
  * Header component
- * Shows user info and logout button
+ * Shows user info, navigation, and logout button
  */
 
 import { useAuthContext } from '../../contexts/AuthContext';
+import { ProgressIndicator } from '../Gamification/ProgressIndicator';
+import { StreakBadge } from '../Gamification/StreakBadge';
 import './Header.css';
+
+type ViewMode = 'chat' | 'progress';
 
 interface HeaderProps {
   onToggleWhiteboard?: () => void;
   isWhiteboardOpen?: boolean;
+  viewMode?: ViewMode;
+  onViewModeChange?: (mode: ViewMode) => void;
+  streak?: number;
+  recentCorrect?: number;
+  recentTotal?: number;
 }
 
-export const Header = ({ onToggleWhiteboard, isWhiteboardOpen }: HeaderProps) => {
+export const Header = ({ 
+  onToggleWhiteboard, 
+  isWhiteboardOpen,
+  viewMode = 'chat',
+  onViewModeChange,
+  streak = 0,
+  recentCorrect = 0,
+  recentTotal = 0,
+}: HeaderProps) => {
   const { user, signOut } = useAuthContext();
 
   if (!user) return null;
@@ -28,8 +45,33 @@ export const Header = ({ onToggleWhiteboard, isWhiteboardOpen }: HeaderProps) =>
     <header className="header">
       <div className="header-content">
         <h1 className="header-title">Math Tutor</h1>
+        <nav className="header-nav">
+          <button
+            className={`header-nav-btn ${viewMode === 'chat' ? 'active' : ''}`}
+            onClick={() => onViewModeChange?.('chat')}
+            title="Chat"
+          >
+            Chat
+          </button>
+          <button
+            className={`header-nav-btn ${viewMode === 'progress' ? 'active' : ''}`}
+            onClick={() => onViewModeChange?.('progress')}
+            title="Progress"
+          >
+            Progress
+          </button>
+        </nav>
+        {viewMode === 'chat' && (
+          <div className="header-gamification">
+            <ProgressIndicator 
+              recentCorrect={recentCorrect}
+              recentTotal={recentTotal}
+            />
+            <StreakBadge streak={streak} />
+          </div>
+        )}
         <div className="header-user">
-          {onToggleWhiteboard && (
+          {onToggleWhiteboard && viewMode === 'chat' && (
             <button
               className={`header-whiteboard-btn ${isWhiteboardOpen ? 'active' : ''}`}
               onClick={onToggleWhiteboard}

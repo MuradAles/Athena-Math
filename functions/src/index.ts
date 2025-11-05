@@ -6,7 +6,7 @@
 import {onRequest} from "firebase-functions/v2/https";
 import {logger} from "firebase-functions/v2";
 import OpenAI from "openai";
-import {SOCRATIC_TUTOR_PROMPT} from "./utils/prompts";
+import {getSystemPrompt} from "./utils/prompts";
 import {MATH_TOOL_SCHEMAS} from "./utils/mathToolSchemas";
 import * as mathTools from "./utils/mathTools";
 
@@ -25,22 +25,6 @@ function getOpenAIClient(): OpenAI {
   });
 }
 
-/**
- * Get system prompt with optional problem context
- */
-function getSystemPrompt(problem?: string, problemContext?: string): string {
-  let prompt = SOCRATIC_TUTOR_PROMPT;
-  
-  if (problem) {
-    prompt += `\n\nStudent's problem: ${problem}`;
-  }
-  
-  if (problemContext) {
-    prompt += `\n\nContext: ${problemContext}`;
-  }
-  
-  return prompt;
-}
 
 /**
  * Execute math tool function based on function name and arguments
@@ -178,15 +162,11 @@ export const chat = onRequest(
       // Get OpenAI client (initialized when function is called)
       const openai = getOpenAIClient();
       
-      // Check if any message has image content (for vision support)
-      const hasImages = conversationMessages.some(
-        (msg) => Array.isArray(msg.content) && msg.content.some((item: any) => item.type === 'image_url')
-      );
+      // Always use GPT-4o for better accuracy and mathematical reasoning
+      // GPT-4o provides superior math accuracy compared to GPT-4o-mini
+      const model = "gpt-4o";
       
-      // Use gpt-4o for vision support (images), fallback to gpt-4o-mini for text-only
-      const model = hasImages ? "gpt-4o" : "gpt-4o-mini";
-      
-      logger.info(`Creating OpenAI stream with model: ${model}`);
+      logger.info(`Creating OpenAI stream with model: ${model} (GPT-4o for improved accuracy)`);
       logger.info(`Sending ${conversationMessages.length} messages to OpenAI`);
       
       // Create OpenAI stream with tools
@@ -248,15 +228,68 @@ export const chat = onRequest(
       logger.info(`Stream completed. Processed ${chunkCount} chunks. Finish reason: ${finishReason}`);
 
       // Handle function calls if detected
+      // IMPORTANT: Tool calls happen during streaming, so we need to send tool results
+      // as they occur, not just at the end. But for now, we handle them at the end.
       if (finishReason === "tool_calls" && functionCallName && functionCallArgs) {
         try {
           logger.info(`Function call detected: ${functionCallName} with args: ${functionCallArgs}`);
           
-          // Parse function arguments
-          const args = JSON.parse(functionCallArgs);
+          // Clean function arguments - remove any trailing whitespace or invalid characters
+          let cleanedArgs = functionCallArgs.trim();
+          
+          // Try to find valid JSON in the string (in case there's extra text)
+          // Look for the first complete JSON object
+          let jsonStart = cleanedArgs.indexOf('{');
+          let jsonEnd = cleanedArgs.lastIndexOf('}');
+          
+          if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+            cleanedArgs = cleanedArgs.substring(jsonStart, jsonEnd + 1);
+          }
+          
+          // Additional cleaning: remove any trailing commas or invalid characters
+          // Try to find the last valid closing brace
+          let braceCount = 0;
+          let validEnd = -1;
+          for (let i = 0; i < cleanedArgs.length; i++) {
+            if (cleanedArgs[i] === '{') braceCount++;
+            if (cleanedArgs[i] === '}') {
+              braceCount--;
+              if (braceCount === 0) {
+                validEnd = i;
+                break;
+              }
+            }
+          }
+          
+          if (validEnd !== -1) {
+            cleanedArgs = cleanedArgs.substring(0, validEnd + 1);
+          }
+          
+          logger.info(`Cleaned function args (length ${cleanedArgs.length}): ${cleanedArgs.substring(0, 200)}...`);
+          
+          // Try to parse - if it fails, log the exact string for debugging
+          let args;
+          try {
+            args = JSON.parse(cleanedArgs);
+          } catch (parseError) {
+            logger.error(`JSON parse error. Raw string: ${functionCallArgs}`);
+            logger.error(`Cleaned string: ${cleanedArgs}`);
+            logger.error(`Parse error: ${parseError}`);
+            throw parseError;
+          }
           
           // Execute function
           const functionResult = await executeMathTool(functionCallName, args);
+          
+          // Send tool call result to client for progress tracking
+          // This allows client to detect correctness from tool results, not text parsing
+          res.write(`data: ${JSON.stringify({
+            tool_call: {
+              name: functionCallName,
+              args: args,
+              result: functionResult,
+            }
+          })}\n\n`);
           
           // Use actual tool call ID or generate one
           const actualToolCallId = toolCallId || `call_${Date.now()}`;
@@ -295,21 +328,108 @@ export const chat = onRequest(
           });
           
           // Stream the continued response
+          let continueFinishReason = "";
+          let continueFunctionCallName = "";
+          let continueFunctionCallArgs = "";
+          
           for await (const chunk of continueStream) {
-            const delta = chunk.choices[0]?.delta?.content;
+            const choice = chunk.choices[0];
+            
+            // Check finish reason
+            if (choice?.finish_reason) {
+              continueFinishReason = choice.finish_reason;
+            }
+            
+            // Handle function calls in continue stream
+            if (choice?.delta?.tool_calls) {
+              const toolCall = choice.delta.tool_calls?.[0];
+              if (toolCall) {
+                if (toolCall.function?.name) {
+                  continueFunctionCallName = toolCall.function.name;
+                }
+                if (toolCall.function?.arguments) {
+                  continueFunctionCallArgs += toolCall.function.arguments;
+                }
+              }
+            }
+            
+            const delta = choice?.delta?.content;
             if (delta) {
               res.write(`data: ${JSON.stringify({content: delta})}\n\n`);
             }
-            
-            // Check for additional function calls (recursive handling)
-            if (chunk.choices[0]?.delta?.tool_calls) {
-              // For simplicity, we'll handle one level of function calls
-              // Multiple nested calls would need more complex handling
+          }
+          
+          // Handle tool calls in continue stream if any
+          if (continueFinishReason === "tool_calls" && continueFunctionCallName && continueFunctionCallArgs) {
+            try {
+              logger.info(`Function call detected in continue stream: ${continueFunctionCallName}`);
+              
+              // Clean function arguments - remove any trailing whitespace or invalid characters
+              let cleanedArgs = continueFunctionCallArgs.trim();
+              
+              // Try to find valid JSON in the string (in case there's extra text)
+              let jsonStart = cleanedArgs.indexOf('{');
+              let jsonEnd = cleanedArgs.lastIndexOf('}');
+              
+              if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+                cleanedArgs = cleanedArgs.substring(jsonStart, jsonEnd + 1);
+              }
+              
+              // Additional cleaning: remove any trailing commas or invalid characters
+              // Try to find the last valid closing brace
+              let braceCount = 0;
+              let validEnd = -1;
+              for (let i = 0; i < cleanedArgs.length; i++) {
+                if (cleanedArgs[i] === '{') braceCount++;
+                if (cleanedArgs[i] === '}') {
+                  braceCount--;
+                  if (braceCount === 0) {
+                    validEnd = i;
+                    break;
+                  }
+                }
+              }
+              
+              if (validEnd !== -1) {
+                cleanedArgs = cleanedArgs.substring(0, validEnd + 1);
+              }
+              
+              logger.info(`Cleaned continue stream args (length ${cleanedArgs.length}): ${cleanedArgs.substring(0, 200)}...`);
+              
+              // Try to parse - if it fails, log the exact string for debugging
+              let args;
+              try {
+                args = JSON.parse(cleanedArgs);
+              } catch (parseError) {
+                logger.error(`JSON parse error in continue stream. Raw string: ${continueFunctionCallArgs}`);
+                logger.error(`Cleaned string: ${cleanedArgs}`);
+                logger.error(`Parse error: ${parseError}`);
+                throw parseError;
+              }
+              const functionResult = await executeMathTool(continueFunctionCallName, args);
+              
+              // Send tool call result to client
+              res.write(`data: ${JSON.stringify({
+                tool_call: {
+                  name: continueFunctionCallName,
+                  args: args,
+                  result: functionResult,
+                }
+              })}\n\n`);
+            } catch (error) {
+              logger.error(`Error handling function call in continue stream: ${error}`);
+              logger.error(`Raw continueFunctionCallArgs (length ${continueFunctionCallArgs.length}): ${continueFunctionCallArgs}`);
+              logger.error(`Function name: ${continueFunctionCallName}`);
             }
           }
         } catch (error) {
           logger.error(`Error handling function call: ${error}`);
-          res.write(`data: ${JSON.stringify({error: `Function call error: ${error}`})}\n\n`);
+          logger.error(`Raw functionCallArgs (length ${functionCallArgs.length}): ${functionCallArgs}`);
+          logger.error(`Function name: ${functionCallName}`);
+          
+          // Send error to client but continue stream
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          res.write(`data: ${JSON.stringify({error: `Function call error: ${errorMessage}`})}\n\n`);
         }
       }
 
@@ -506,6 +626,119 @@ export const transcribe = onRequest(
       res.json({ text });
     } catch (error) {
       logger.error("Error in transcribe function:", error);
+
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "An unknown error occurred";
+
+      res.status(500).json({ error: errorMessage });
+    }
+  }
+);
+
+/**
+ * HTTP Cloud Function for extracting topic and difficulty from math problem
+ * 
+ * POST /extract-topic
+ * Body: { problem: string }
+ * 
+ * Returns: { topic: string, subTopic?: string, difficulty: string } - Topic metadata
+ */
+export const extractTopic = onRequest(
+  {
+    cors: true,
+    timeoutSeconds: 60,
+    maxInstances: 10,
+  },
+  async (req, res) => {
+    // Handle CORS preflight
+    if (req.method === "OPTIONS") {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      res.status(204).end();
+      return;
+    }
+
+    // Set CORS headers
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    // Only allow POST requests
+    if (req.method !== "POST") {
+      res.status(405).send("Method Not Allowed");
+      return;
+    }
+
+    try {
+      const { problem } = req.body;
+
+      // Validate request body
+      if (!problem || typeof problem !== "string") {
+        res.status(400).json({ error: "Invalid request: problem required" });
+        return;
+      }
+
+      // Get OpenAI client
+      const openai = getOpenAIClient();
+
+      logger.info("Extracting topic and difficulty from problem...");
+
+      // Use GPT-4o to analyze problem and extract topic/difficulty
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are a math problem analyzer. Analyze the given math problem and return ONLY a JSON object with:
+- topic: The main math topic (e.g., "algebra", "geometry", "calculus", "arithmetic", "trigonometry")
+- subTopic: A specific sub-topic within the main topic (e.g., "linear_equations", "quadratic_equations", "triangles", "circles", "derivatives", "integrals"). Be specific.
+- difficulty: "easy", "medium", or "hard" based on the problem complexity
+
+Return ONLY valid JSON, no other text. Example format:
+{"topic": "algebra", "subTopic": "linear_equations", "difficulty": "medium"}`,
+          },
+          {
+            role: "user",
+            content: `Analyze this math problem and return the topic, subTopic, and difficulty:\n\n${problem}`,
+          },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3, // Lower temperature for more consistent topic extraction
+        max_tokens: 200,
+      });
+
+      const content = response.choices[0]?.message?.content?.trim();
+      if (!content) {
+        res.status(400).json({ error: "Could not extract topic from problem" });
+        return;
+      }
+
+      // Parse JSON response
+      const topicData = JSON.parse(content);
+
+      // Validate response structure
+      if (!topicData.topic || !topicData.difficulty) {
+        res.status(400).json({ error: "Invalid topic extraction response" });
+        return;
+      }
+
+      // Validate difficulty
+      if (!["easy", "medium", "hard"].includes(topicData.difficulty)) {
+        topicData.difficulty = "medium"; // Default to medium if invalid
+      }
+
+      logger.info("Topic extracted successfully:", topicData);
+
+      // Return topic metadata
+      res.json({
+        topic: topicData.topic,
+        subTopic: topicData.subTopic || null,
+        difficulty: topicData.difficulty,
+      });
+    } catch (error) {
+      logger.error("Error in extractTopic function:", error);
 
       const errorMessage = error instanceof Error
         ? error.message

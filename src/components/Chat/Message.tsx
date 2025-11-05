@@ -2,14 +2,16 @@
  * Message component
  * Displays individual chat messages with role-based styling
  * Supports LaTeX math rendering via KaTeX
+ * Shows sparkle animation on correct answers
  */
 
 import type React from 'react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Message as MessageType } from '../../types';
 import { InlineMath, BlockMath } from 'react-katex';
 import { parseMathContent } from '../../utils/mathRenderer';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
+import { SparkleAnimation } from '../Gamification/SparkleAnimation';
 import 'katex/dist/katex.min.css';
 import './Message.css';
 
@@ -17,14 +19,26 @@ interface MessageProps {
   message: MessageType;
   isNew?: boolean; // Whether this is a newly received message
   onAutoPlayComplete?: () => void; // Callback when auto-play completes
+  isCorrectAnswer?: boolean; // Whether this message indicates a correct answer
 }
 
-export const Message = ({ message, isNew = false, onAutoPlayComplete }: MessageProps) => {
+export const Message = ({ message, isNew = false, onAutoPlayComplete, isCorrectAnswer = false }: MessageProps) => {
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
   const { isGenerating, isPlaying, generateAndPlay, stop } = useTextToSpeech();
   const hasAutoPlayedRef = useRef(false);
   const lastMessageIdRef = useRef<string | null>(null);
+  const [showSparkles, setShowSparkles] = useState(false);
+
+  // Trigger sparkles when correct answer is detected
+  useEffect(() => {
+    if (isCorrectAnswer && isAssistant) {
+      setShowSparkles(true);
+      // Reset after animation completes
+      const timer = setTimeout(() => setShowSparkles(false), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isCorrectAnswer, isAssistant]);
 
   const formatTimestamp = (date: Date): string => {
     return new Intl.DateTimeFormat('en-US', {
@@ -137,8 +151,11 @@ export const Message = ({ message, isNew = false, onAutoPlayComplete }: MessageP
   };
 
   return (
-    <div className={`message message--${message.role}`}>
+    <div className={`message message--${message.role} ${isCorrectAnswer ? 'message--correct' : ''}`}>
       <div className="message__content">
+        {isCorrectAnswer && isAssistant && (
+          <SparkleAnimation trigger={showSparkles} />
+        )}
         {imageUrl && (
           <div className="message__image">
             <img src={imageUrl} alt="User uploaded" className="message__image-img" />

@@ -12,6 +12,11 @@
   overflow: hidden;
 }
 
+/* Allow scrolling when in progress view mode */
+.app.progress-mode {
+  overflow: visible;
+}
+
 .app-content {
   display: flex;
   flex: 1;

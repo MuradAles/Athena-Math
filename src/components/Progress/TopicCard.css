@@ -1,0 +1,237 @@
+/**
+ * Topic Card Styles
+ * Beautiful card styling with color-coded success indicators
+ */
+
+.topic-card {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: 16px;
+  padding: var(--spacing-lg);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.topic-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--color-border);
+  transition: background 0.3s ease;
+}
+
+.topic-card.success::before {
+  background: var(--color-success);
+}
+
+.topic-card.warning::before {
+  background: var(--color-warning);
+}
+
+.topic-card.error::before {
+  background: var(--color-error);
+}
+
+.topic-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: var(--color-primary);
+}
+
+.topic-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.topic-card-title {
+  flex: 1;
+}
+
+.topic-name {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin-bottom: var(--spacing-xs);
+}
+
+.topic-problems-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.topic-card-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.topic-success-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-lg);
+  color: white;
+  position: relative;
+}
+
+.topic-success-circle.success {
+  background: linear-gradient(135deg, var(--color-success), #22c55e);
+}
+
+.topic-success-circle.warning {
+  background: linear-gradient(135deg, var(--color-warning), #f97316);
+}
+
+.topic-success-circle.error {
+  background: linear-gradient(135deg, var(--color-error), #ef4444);
+}
+
+.topic-success-percentage {
+  z-index: 1;
+}
+
+.topic-expand-icon {
+  color: var(--color-text-secondary);
+  transition: transform 0.3s ease;
+}
+
+.topic-expand-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.topic-card-details {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+  animation: slideDown 0.3s ease;
+  max-height: none;
+  overflow: visible;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.topic-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.topic-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.topic-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.topic-stat-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.topic-stat-value {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.topic-subtopics {
+  margin-top: var(--spacing-md);
+}
+
+.topic-subtopics-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--spacing-md);
+}
+
+.topic-subtopics-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.topic-subtopic-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-background);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.topic-subtopic-name {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.topic-subtopic-progress {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.topic-difficulty-breakdown {
+  margin-top: var(--spacing-md);
+}
+
+.topic-difficulty-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--spacing-md);
+}
+
+.topic-difficulty-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.topic-difficulty-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-background);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.topic-difficulty-label {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  text-transform: capitalize;
+}
+
+.topic-difficulty-stats {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+

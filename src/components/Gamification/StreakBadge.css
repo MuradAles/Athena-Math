@@ -1,0 +1,59 @@
+/**
+ * Streak Badge Styles
+ */
+
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: linear-gradient(135deg, #ff6b6b, #ff8787);
+  border-radius: var(--border-radius-full);
+  color: white;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+  animation: streakPulse 2s ease-in-out infinite;
+}
+
+@keyframes streakPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5);
+  }
+}
+
+.streak-icon {
+  font-size: var(--font-size-base);
+  animation: flameFlicker 1.5s ease-in-out infinite;
+}
+
+@keyframes flameFlicker {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) rotate(-2deg);
+  }
+  50% {
+    transform: scale(1.05) rotate(2deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(-1deg);
+  }
+}
+
+.streak-count {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
+}
+
+.streak-label {
+  font-size: var(--font-size-xs);
+  opacity: 0.9;
+}
+
