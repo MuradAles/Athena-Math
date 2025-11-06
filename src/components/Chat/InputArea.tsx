@@ -12,9 +12,11 @@ import './InputArea.css';
 interface InputAreaProps {
   onSendMessage: (content: string, imageUrl?: string) => void;
   disabled?: boolean;
+  onToggleWhiteboard?: () => void;
+  isWhiteboardOpen?: boolean;
 }
 
-export const InputArea = ({ onSendMessage, disabled = false }: InputAreaProps) => {
+export const InputArea = ({ onSendMessage, disabled = false, onToggleWhiteboard, isWhiteboardOpen }: InputAreaProps) => {
   const { user } = useAuthContext();
   const [input, setInput] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -200,6 +202,21 @@ export const InputArea = ({ onSendMessage, disabled = false }: InputAreaProps) =
             onChange={handleFileInputChange}
             style={{ display: 'none' }}
           />
+          {onToggleWhiteboard && (
+            <button
+              className={`input-area__whiteboard-btn ${isWhiteboardOpen ? 'input-area__whiteboard-btn--active' : ''}`}
+              onClick={onToggleWhiteboard}
+              disabled={disabled || isRecording || isTranscribing}
+              aria-label="Toggle whiteboard"
+              title="Toggle whiteboard"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <path d="M9 3v18"/>
+                <path d="M3 9h18"/>
+              </svg>
+            </button>
+          )}
           <button
             className="input-area__upload-btn"
             onClick={handleImageUploadClick}

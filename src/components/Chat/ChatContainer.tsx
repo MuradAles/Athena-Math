@@ -13,6 +13,7 @@ import { useStreaming } from '../../hooks/useStreaming';
 import { useChats } from '../../hooks/useChats';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { saveProblemContext } from '../../utils/storage';
+import { useConfetti } from '../../hooks/useConfetti';
 import type { ToolCall } from '../../hooks/useStreaming';
 import './ChatContainer.css';
 
@@ -21,6 +22,8 @@ interface ChatContainerProps {
   onTrackCorrectAnswer?: (chatId: string, problem: string, hintsUsed: number, questionsAsked: number) => Promise<void>;
   onTrackWrongAnswer?: (chatId: string, problem: string) => Promise<void>;
   onCorrectAnswerDetected?: (messageId: string) => void;
+  onToggleWhiteboard?: () => void;
+  isWhiteboardOpen?: boolean;
 }
 
 export interface ChatContainerRef {
@@ -32,6 +35,8 @@ export const ChatContainer = forwardRef<ChatContainerRef, ChatContainerProps>(({
   onTrackCorrectAnswer,
   onTrackWrongAnswer,
   onCorrectAnswerDetected,
+  onToggleWhiteboard,
+  isWhiteboardOpen,
 }, ref) => {
   const { user } = useAuthContext();
   const { currentChat, addMessage, selectChat } = useChats(user?.uid || null);
@@ -51,6 +56,9 @@ export const ChatContainer = forwardRef<ChatContainerRef, ChatContainerProps>(({
     startStream,
     reset: resetStream,
   } = useStreaming();
+
+  // Confetti celebration hook
+  const { celebrate } = useConfetti();
 
   // Note: Gamification is handled at App level and passed down via callbacks
 
@@ -279,11 +287,16 @@ export const ChatContainer = forwardRef<ChatContainerRef, ChatContainerProps>(({
               ? String(recentValidation.args.student_answer)
               : 'unknown',
             chatId,
+            messageId: assistantMessage.id,
           });
           
           // Mark this message as indicating a correct answer
           correctAnswerMessageIdsRef.current.add(assistantMessage.id);
           onCorrectAnswerDetected?.(assistantMessage.id);
+          
+          // 🎉 Celebrate with confetti!
+          console.log('🎉 Triggering confetti celebration for message:', assistantMessage.id);
+          celebrate();
           
           // Track progress with gamification
           if (onTrackCorrectAnswer) {
@@ -401,6 +414,8 @@ export const ChatContainer = forwardRef<ChatContainerRef, ChatContainerProps>(({
       <InputArea 
         onSendMessage={handleSendMessage} 
         disabled={isStreaming}
+        onToggleWhiteboard={onToggleWhiteboard}
+        isWhiteboardOpen={isWhiteboardOpen}
       />
     </div>
   );

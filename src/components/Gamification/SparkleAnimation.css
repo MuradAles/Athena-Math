@@ -11,20 +11,20 @@
   bottom: 0;
   pointer-events: none;
   z-index: 10;
-  overflow: hidden;
+  overflow: visible; /* Changed to visible for sparkles to burst outward */
 }
 
 .sparkle-particle {
   position: absolute;
-  width: 6px;
-  height: 6px;
+  width: 8px; /* Increased from 6px */
+  height: 8px; /* Increased from 6px */
   background: linear-gradient(135deg, #ffd700, #ffed4e);
   border-radius: 50%;
-  box-shadow: 0 0 10px #ffd700, 0 0 20px #ffd700;
+  box-shadow: 0 0 15px #ffd700, 0 0 30px #ffd700, 0 0 40px rgba(255, 215, 0, 0.5); /* More intense glow */
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%) translate(var(--start-x), var(--start-y));
-  animation: sparkle 1.5s ease-out var(--delay) forwards;
+  animation: sparkle 1.8s ease-out var(--delay) forwards; /* Slightly longer */
   opacity: 0;
 }
 
@@ -47,18 +47,41 @@
 }
 
 /* Additional sparkle particles with different colors */
-.sparkle-particle:nth-child(3n) {
+.sparkle-particle:nth-child(6n) {
   background: linear-gradient(135deg, #ff6b6b, #ff8787);
-  box-shadow: 0 0 10px #ff6b6b, 0 0 20px #ff6b6b;
+  box-shadow: 0 0 15px #ff6b6b, 0 0 30px #ff6b6b, 0 0 40px rgba(255, 107, 107, 0.5);
+  width: 10px;
+  height: 10px;
 }
 
-.sparkle-particle:nth-child(3n+1) {
+.sparkle-particle:nth-child(6n+1) {
   background: linear-gradient(135deg, #4ecdc4, #6ee7dc);
-  box-shadow: 0 0 10px #4ecdc4, 0 0 20px #4ecdc4;
+  box-shadow: 0 0 15px #4ecdc4, 0 0 30px #4ecdc4, 0 0 40px rgba(78, 205, 196, 0.5);
 }
 
-.sparkle-particle:nth-child(3n+2) {
+.sparkle-particle:nth-child(6n+2) {
   background: linear-gradient(135deg, #95e1d3, #a8e6cf);
-  box-shadow: 0 0 10px #95e1d3, 0 0 20px #95e1d3;
+  box-shadow: 0 0 15px #95e1d3, 0 0 30px #95e1d3, 0 0 40px rgba(149, 225, 211, 0.5);
+  width: 7px;
+  height: 7px;
+}
+
+.sparkle-particle:nth-child(6n+3) {
+  background: linear-gradient(135deg, #ff69b4, #ff8acc);
+  box-shadow: 0 0 15px #ff69b4, 0 0 30px #ff69b4, 0 0 40px rgba(255, 105, 180, 0.5);
+  width: 9px;
+  height: 9px;
+}
+
+.sparkle-particle:nth-child(6n+4) {
+  background: linear-gradient(135deg, #9370db, #ba98ff);
+  box-shadow: 0 0 15px #9370db, 0 0 30px #9370db, 0 0 40px rgba(147, 112, 219, 0.5);
+}
+
+.sparkle-particle:nth-child(6n+5) {
+  background: linear-gradient(135deg, #32cd32, #50ff50);
+  box-shadow: 0 0 15px #32cd32, 0 0 30px #32cd32, 0 0 40px rgba(50, 205, 50, 0.5);
+  width: 8px;
+  height: 8px;
 }
 

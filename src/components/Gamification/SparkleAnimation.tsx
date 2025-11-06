@@ -18,7 +18,7 @@ export const SparkleAnimation = ({ trigger, onComplete }: SparkleAnimationProps)
     if (!trigger || !containerRef.current) return;
 
     const container = containerRef.current;
-    const particleCount = 30;
+    const particleCount = 50; // Increased from 30
     const particles: HTMLDivElement[] = [];
 
     // Create particles
@@ -26,14 +26,14 @@ export const SparkleAnimation = ({ trigger, onComplete }: SparkleAnimationProps)
       const particle = document.createElement('div');
       particle.className = 'sparkle-particle';
       
-      // Random position around the center
-      const angle = (Math.PI * 2 * i) / particleCount;
-      const distance = 50 + Math.random() * 100;
+      // Random position around the center with more variation
+      const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
+      const distance = 30 + Math.random() * 120; // More variation
       const startX = Math.cos(angle) * distance;
       const startY = Math.sin(angle) * distance;
       
-      // Random delay
-      const delay = Math.random() * 0.3;
+      // Random delay with more stagger
+      const delay = Math.random() * 0.5; // Increased from 0.3
       
       particle.style.setProperty('--start-x', `${startX}px`);
       particle.style.setProperty('--start-y', `${startY}px`);
@@ -43,13 +43,13 @@ export const SparkleAnimation = ({ trigger, onComplete }: SparkleAnimationProps)
       particles.push(particle);
     }
 
-    // Cleanup after animation
+    // Cleanup after animation (extended duration)
     const timeout = setTimeout(() => {
       particles.forEach(particle => particle.remove());
       if (onComplete) {
         onComplete();
       }
-    }, 1500);
+    }, 2000); // Increased from 1500
 
     return () => {
       clearTimeout(timeout);

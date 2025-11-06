@@ -29,16 +29,19 @@ export const Message = ({ message, isNew = false, onAutoPlayComplete, isCorrectA
   const hasAutoPlayedRef = useRef(false);
   const lastMessageIdRef = useRef<string | null>(null);
   const [showSparkles, setShowSparkles] = useState(false);
+  const hasShownSparklesRef = useRef(false); // Track if sparkles have been shown for this message
 
-  // Trigger sparkles when correct answer is detected
+  // Trigger sparkles when correct answer is detected - ONLY ONCE per message
   useEffect(() => {
-    if (isCorrectAnswer && isAssistant) {
+    if (isCorrectAnswer && isAssistant && !hasShownSparklesRef.current) {
+      console.log('✨ Triggering sparkles for message:', message.id);
+      hasShownSparklesRef.current = true; // Mark as shown immediately to prevent duplicates
       setShowSparkles(true);
       // Reset after animation completes
-      const timer = setTimeout(() => setShowSparkles(false), 1500);
+      const timer = setTimeout(() => setShowSparkles(false), 2000); // Extended to 2s to match sparkle duration
       return () => clearTimeout(timer);
     }
-  }, [isCorrectAnswer, isAssistant]);
+  }, [isCorrectAnswer, isAssistant, message.id]);
 
   const formatTimestamp = (date: Date): string => {
     return new Intl.DateTimeFormat('en-US', {
@@ -151,7 +154,7 @@ export const Message = ({ message, isNew = false, onAutoPlayComplete, isCorrectA
   };
 
   return (
-    <div className={`message message--${message.role} ${isCorrectAnswer ? 'message--correct' : ''}`}>
+    <div className={`message message--${message.role} ${isCorrectAnswer && isAssistant ? 'message--correct-answer' : ''}`}>
       <div className="message__content">
         {isCorrectAnswer && isAssistant && (
           <SparkleAnimation trigger={showSparkles} />

@@ -26,6 +26,46 @@
   align-items: flex-end;
 }
 
+/* Whiteboard button styles */
+.input-area__whiteboard-btn {
+  padding: var(--spacing-sm);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  font-size: var(--font-size-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  transition: all var(--transition-base);
+  color: var(--color-text-secondary);
+}
+
+.input-area__whiteboard-btn:hover:not(:disabled) {
+  background-color: var(--color-background);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.input-area__whiteboard-btn--active {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.input-area__whiteboard-btn--active:hover:not(:disabled) {
+  background-color: var(--color-primary-dark, #2563eb);
+  border-color: var(--color-primary-dark, #2563eb);
+}
+
+.input-area__whiteboard-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Upload button styles */
 .input-area__upload-btn {
   padding: var(--spacing-sm);
   background-color: var(--color-surface);

@@ -10,6 +10,7 @@ import {
   getChatWithMessages,
   saveMessage,
   subscribeToChatMessages,
+  subscribeToUserChats,
   deleteChat,
 } from '../services/firestore';
 import type { Chat, ChatWithMessages } from '../types/chat';
@@ -51,10 +52,20 @@ export const useChats = (userId: string | null): UseChatsReturn => {
     }
   }, [userId]);
 
-  // Load chats on mount and when userId changes
+  // Subscribe to user's chats in real-time (for title updates)
   useEffect(() => {
-    loadChats();
-  }, [loadChats]);
+    if (!userId) {
+      setChats([]);
+      return;
+    }
+
+    // Use real-time subscription instead of polling
+    const unsubscribe = subscribeToUserChats(userId, (updatedChats) => {
+      setChats(updatedChats);
+    });
+
+    return () => unsubscribe();
+  }, [userId]);
 
   // Subscribe to current chat messages
   useEffect(() => {
@@ -135,7 +146,7 @@ export const useChats = (userId: string | null): UseChatsReturn => {
 
       try {
         await saveMessage(userId, currentChatId, message);
-        // Real-time update will handle UI update via subscription
+        // Real-time subscription will automatically update chat list when title changes
       } catch (error) {
         console.error('Error adding message:', error);
         throw error;

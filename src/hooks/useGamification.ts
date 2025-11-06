@@ -12,14 +12,12 @@ import type { Achievement } from '../types/achievements';
 interface UseGamificationReturn {
   // Progress tracking
   trackCorrectAnswer: (
+    chatId: string,
     problem: string,
-    topic: string,
-    subTopic: string | undefined,
-    difficulty: 'easy' | 'medium' | 'hard',
     hintsUsed: number,
     questionsAsked: number
   ) => Promise<void>;
-  trackWrongAnswer: () => Promise<void>;
+  trackWrongAnswer: (chatId: string, problem: string) => Promise<void>;
   
   // Streak
   streak: number;

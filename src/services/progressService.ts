@@ -154,20 +154,20 @@ const updateAggregatedProgress = async (
         const newAggregated: TopicProgress = {
           topic,
           totalProblems: 1,
-          correctAnswers: event.wasCorrect ? 1 : 0,
-          successRate: event.wasCorrect ? 1 : 0,
+          correctAnswers: 1, // Students always eventually get it right
+          successRate: 1.0, // Students never fail - they always eventually get it right
           avgHintsPerProblem: event.hintsUsed,
           avgQuestionsPerProblem: event.questionsPerProblem,
           difficultyBreakdown: {
-            easy: { attempted: 0, correct: 0 },
-            medium: { attempted: 0, correct: 0 },
-            hard: { attempted: 0, correct: 0 },
+            easy: { attempted: event.difficulty === 'easy' ? 1 : 0, correct: event.difficulty === 'easy' ? 1 : 0 },
+            medium: { attempted: event.difficulty === 'medium' ? 1 : 0, correct: event.difficulty === 'medium' ? 1 : 0 },
+            hard: { attempted: event.difficulty === 'hard' ? 1 : 0, correct: event.difficulty === 'hard' ? 1 : 0 },
           },
           subTopics: event.subTopic ? [{
             subTopic: event.subTopic,
             totalProblems: 1,
-            correctAnswers: event.wasCorrect ? 1 : 0,
-            successRate: event.wasCorrect ? 1 : 0,
+            correctAnswers: 1, // Students always eventually get it right
+            successRate: 1.0, // Students never fail - they always eventually get it right
             avgHintsPerProblem: event.hintsUsed,
             avgQuestionsPerProblem: event.questionsPerProblem,
           }] : [],
@@ -190,8 +190,8 @@ const updateAggregatedProgress = async (
         const current = aggregatedDoc.data() as TopicProgress & { lastActivity: Timestamp };
         
         const totalProblems = current.totalProblems + 1;
-        const correctAnswers = current.correctAnswers + (event.wasCorrect ? 1 : 0);
-        const successRate = correctAnswers / totalProblems;
+        const correctAnswers = current.correctAnswers + 1; // Students always eventually get it right
+        const successRate = 1.0; // Students never fail - 100% success rate
 
         // Update averages (weighted average)
         const avgHints = (current.avgHintsPerProblem * current.totalProblems + event.hintsUsed) / totalProblems;
@@ -201,7 +201,7 @@ const updateAggregatedProgress = async (
         const difficultyBreakdown = { ...current.difficultyBreakdown };
         difficultyBreakdown[event.difficulty] = {
           attempted: difficultyBreakdown[event.difficulty].attempted + 1,
-          correct: difficultyBreakdown[event.difficulty].correct + (event.wasCorrect ? 1 : 0),
+          correct: difficultyBreakdown[event.difficulty].correct + 1, // Students always eventually get it right
         };
 
         // Update sub-topics
@@ -211,12 +211,12 @@ const updateAggregatedProgress = async (
           if (subTopicIndex >= 0) {
             const subTopic = subTopics[subTopicIndex];
             const subTotal = subTopic.totalProblems + 1;
-            const subCorrect = subTopic.correctAnswers + (event.wasCorrect ? 1 : 0);
+            const subCorrect = subTopic.correctAnswers + 1; // Students always eventually get it right
             subTopics[subTopicIndex] = {
               ...subTopic,
               totalProblems: subTotal,
               correctAnswers: subCorrect,
-              successRate: subCorrect / subTotal,
+              successRate: 1.0, // Students never fail - 100% success rate
               avgHintsPerProblem: (subTopic.avgHintsPerProblem * subTopic.totalProblems + event.hintsUsed) / subTotal,
               avgQuestionsPerProblem: (subTopic.avgQuestionsPerProblem * subTopic.totalProblems + event.questionsPerProblem) / subTotal,
             };
@@ -224,8 +224,8 @@ const updateAggregatedProgress = async (
             subTopics.push({
               subTopic: event.subTopic,
               totalProblems: 1,
-              correctAnswers: event.wasCorrect ? 1 : 0,
-              successRate: event.wasCorrect ? 1 : 0,
+              correctAnswers: 1, // Students always eventually get it right
+              successRate: 1.0, // Students never fail - they always eventually get it right
               avgHintsPerProblem: event.hintsUsed,
               avgQuestionsPerProblem: event.questionsPerProblem,
             });

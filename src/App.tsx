@@ -6,12 +6,12 @@
 import { useState, useRef } from 'react';
 import { AuthProvider, useAuthContext } from './contexts/AuthContext';
 import { Login, Signup } from './components/Auth';
-import { Header } from './components/Common/Header';
-import { ChatList, ChatContainer, type ChatContainerRef } from './components/Chat';
+import { Sidebar } from './components/Common/Sidebar';
+import { ChatContainer, type ChatContainerRef } from './components/Chat';
 import { WhiteboardPanel } from './components/Whiteboard';
 import { ProgressPage } from './pages/ProgressPage';
-import { useChats } from './hooks/useChats';
 import { useGamification } from './hooks/useGamification';
+import { useChats } from './hooks/useChats';
 import { AchievementNotification } from './components/Gamification/AchievementNotification';
 import './App.css';
 
@@ -19,24 +19,28 @@ type ViewMode = 'chat' | 'progress';
 
 const AppContent = () => {
   const { user, loading: authLoading } = useAuthContext();
-  const { createNewChat, selectChat } = useChats(user?.uid || null);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [showSignup, setShowSignup] = useState(false);
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
   const [whiteboardWidth, setWhiteboardWidth] = useState(400);
   const [viewMode, setViewMode] = useState<ViewMode>('chat');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const chatContainerRef = useRef<ChatContainerRef | null>(null);
   
-  // Gamification hook for header display
+  // Chat management hook - single instance for entire app
+  const { chats, createNewChat, deleteChatById } = useChats(user?.uid || null);
+  
+  // Gamification hook for progress tracking
   const { 
-    streak, 
-    recentCorrect, 
-    recentTotal,
-    trackCorrectAnswer,
-    trackWrongAnswer,
+    trackCorrectAnswer: trackCorrectAnswerGamification,
+    trackWrongAnswer: trackWrongAnswerGamification,
     newlyEarnedAchievement,
     dismissAchievement,
   } = useGamification(user?.uid || null);
+
+  // Wrapper functions - useGamification already matches ChatContainer signature
+  const trackCorrectAnswer = trackCorrectAnswerGamification;
+  const trackWrongAnswer = trackWrongAnswerGamification;
 
   // Show loading state while checking auth
   if (authLoading) {
@@ -58,41 +62,52 @@ const AppContent = () => {
   // Handle chat selection
   const handleSelectChat = (chatId: string | null) => {
     setCurrentChatId(chatId);
-    if (chatId) {
-      selectChat(chatId);
+  };
+
+  // Handle new chat creation
+  const handleNewChat = async () => {
+    try {
+      const newChatId = await createNewChat();
+      setCurrentChatId(newChatId);
+      setViewMode('chat'); // Ensure we're in chat mode
+    } catch (error) {
+      console.error('Error creating new chat:', error);
     }
   };
 
   // Main app layout
   return (
-    <div className={`app ${viewMode === 'progress' ? 'progress-mode' : ''}`}>
+    <div className={`app ${viewMode === 'progress' ? 'progress-mode' : ''} ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <AchievementNotification 
         achievement={newlyEarnedAchievement}
         onDismiss={dismissAchievement}
       />
-      <Header 
-        isWhiteboardOpen={isWhiteboardOpen}
-        onToggleWhiteboard={() => setIsWhiteboardOpen(!isWhiteboardOpen)}
+      <Sidebar
+        activeChatId={currentChatId}
+        onSelectChat={handleSelectChat}
+        onNewChat={handleNewChat}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        streak={streak}
-        recentCorrect={recentCorrect}
-        recentTotal={recentTotal}
+        onCollapseChange={setIsSidebarCollapsed}
+        chats={chats}
+        onDeleteChat={deleteChatById}
       />
-      {viewMode === 'progress' ? (
-        <ProgressPage />
-      ) : (
-        <div className="app-content">
-          <ChatList activeChatId={currentChatId} onSelectChat={handleSelectChat} />
-          <div className="app-chat-area">
-            <ChatContainer 
-              ref={chatContainerRef}
-              chatId={currentChatId}
-              onTrackCorrectAnswer={trackCorrectAnswer}
-              onTrackWrongAnswer={trackWrongAnswer}
-            />
-          </div>
-          <div 
+      <div className="app-main">
+        {viewMode === 'progress' ? (
+          <ProgressPage />
+        ) : (
+          <>
+            <div className="app-chat-area">
+              <ChatContainer 
+                ref={chatContainerRef}
+                chatId={currentChatId}
+                onTrackCorrectAnswer={trackCorrectAnswer}
+                onTrackWrongAnswer={trackWrongAnswer}
+                onToggleWhiteboard={() => setIsWhiteboardOpen(!isWhiteboardOpen)}
+                isWhiteboardOpen={isWhiteboardOpen}
+              />
+            </div>
+            <div 
             className={`whiteboard-sidebar ${isWhiteboardOpen ? 'open' : ''}`}
             style={{ width: isWhiteboardOpen ? `${whiteboardWidth}px` : '0px' }}
           >
@@ -134,8 +149,9 @@ const AppContent = () => {
               </div>
             )}
           </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

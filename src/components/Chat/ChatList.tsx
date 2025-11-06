@@ -5,37 +5,23 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { useChats } from '../../hooks/useChats';
-import { useAuthContext } from '../../contexts/AuthContext';
-import { clearProblemContext } from '../../utils/storage';
+import type { Chat } from '../../types/chat';
 import './ChatList.css';
 
 interface ChatListProps {
   activeChatId: string | null;
   onSelectChat: (chatId: string | null) => void;
+  isCollapsed?: boolean;
+  chats: Chat[];
+  onDeleteChat: (chatId: string) => Promise<void>;
 }
 
-export const ChatList = ({ activeChatId, onSelectChat }: ChatListProps) => {
-  const { user } = useAuthContext();
-  const { chats, loading, createNewChat, deleteChatById } = useChats(user?.uid || null);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+export const ChatList = ({ activeChatId, onSelectChat, isCollapsed: externalCollapsed, chats, onDeleteChat }: ChatListProps) => {
+  const isCollapsed = externalCollapsed ?? false;
+  const loading = false; // Loading handled by parent now
   const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const handleNewChat = async () => {
-    try {
-      // Clear problem context when creating a new chat
-      // Each new chat should be independent and not use context from other chats
-      clearProblemContext();
-      
-      const chatId = await createNewChat();
-      onSelectChat(chatId);
-    } catch (error) {
-      console.error('Error creating new chat:', error);
-      alert('Failed to create new chat. Please try again.');
-    }
-  };
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -74,7 +60,7 @@ export const ChatList = ({ activeChatId, onSelectChat }: ChatListProps) => {
     try {
       // Wait for animation to start
       await new Promise(resolve => setTimeout(resolve, 100));
-      await deleteChatById(chatId);
+      await onDeleteChat(chatId);
     } catch (error) {
       console.error('Error deleting chat:', error);
       setDeletingChatId(null); // Reset on error
@@ -98,49 +84,68 @@ export const ChatList = ({ activeChatId, onSelectChat }: ChatListProps) => {
     }
   };
 
-  return (
-    <>
-      <div className={`chat-list ${isCollapsed ? 'collapsed' : ''}`}>
-        <div className="chat-list-header">
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="chat-list-toggle"
-            aria-label={isCollapsed ? 'Expand chat list' : 'Collapse chat list'}
-          >
-            {isCollapsed ? '→' : '←'}
-          </button>
-          {!isCollapsed && (
-            <button onClick={handleNewChat} className="btn btn-primary btn-sm">
-              + New
-            </button>
-          )}
-        </div>
+  // Group chats by date
+  const groupedChats = chats.reduce((acc, chat) => {
+    const date = formatDate(chat.updatedAt);
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push(chat);
+    return acc;
+  }, {} as Record<string, typeof chats>);
 
-        {!isCollapsed && (
-          <>
-            {loading ? (
-              <div className="chat-list-loading">Loading chats...</div>
-            ) : chats.length === 0 ? (
-              <div className="chat-list-empty">No chats yet. Create a new chat to get started!</div>
-            ) : (
-              <div className="chat-list-items">
-                {chats.map((chat) => (
-                  <div
-                    key={chat.id}
-                    className={`chat-list-item-wrapper ${activeChatId === chat.id ? 'active' : ''} ${deletingChatId === chat.id ? 'chat-list-item-wrapper--deleting' : ''}`}
-                  >
-                    <button
-                      onClick={() => onSelectChat(chat.id)}
-                      className="chat-list-item"
-                    >
-                      <div className="chat-list-item-content">
-                        <div className="chat-list-item-title">{chat.title}</div>
-                        {chat.lastMessagePreview && (
-                          <div className="chat-list-item-preview">{chat.lastMessagePreview}</div>
-                        )}
-                        <div className="chat-list-item-date">{formatDate(chat.updatedAt)}</div>
-                      </div>
-                    </button>
+  const dateGroups = Object.entries(groupedChats).sort((a, b) => {
+    // Sort by date: Today, Yesterday, then by days
+    if (a[0] === 'Today') return -1;
+    if (b[0] === 'Today') return 1;
+    if (a[0] === 'Yesterday') return -1;
+    if (b[0] === 'Yesterday') return 1;
+    return 0;
+  });
+
+  return (
+    <div className={`chat-list-inner ${isCollapsed ? 'collapsed' : ''}`}>
+      {loading ? (
+        <div className="chat-list-loading">Loading chats...</div>
+      ) : chats.length === 0 ? (
+        <div className="chat-list-empty">{isCollapsed ? 'No chats' : 'No chats yet. Create a new chat to get started!'}</div>
+      ) : (
+        <div className="chat-list-items">
+          {isCollapsed ? (
+            // Collapsed view - show icon circles only
+            chats.slice(0, 10).map((chat) => (
+              <button
+                key={chat.id}
+                onClick={() => onSelectChat(chat.id)}
+                className={`chat-list-item-collapsed ${activeChatId === chat.id ? 'active' : ''}`}
+                title={chat.title}
+              >
+                <div className="chat-list-item-icon">
+                  {chat.title.charAt(0).toUpperCase()}
+                </div>
+              </button>
+            ))
+          ) : (
+            // Expanded view - show full list with dates
+            dateGroups.map(([dateLabel, dateChats]) => (
+              <div key={dateLabel} className="chat-list-date-group">
+                <div className="chat-list-date-label">{dateLabel}</div>
+                {dateChats.map((chat) => (
+                      <div
+                        key={chat.id}
+                        className={`chat-list-item-wrapper ${activeChatId === chat.id ? 'active' : ''} ${deletingChatId === chat.id ? 'chat-list-item-wrapper--deleting' : ''}`}
+                      >
+                        <button
+                          onClick={() => onSelectChat(chat.id)}
+                          className="chat-list-item"
+                        >
+                          <div className="chat-list-item-content">
+                            <div className="chat-list-item-title">{chat.title}</div>
+                            {chat.lastMessagePreview && (
+                              <div className="chat-list-item-preview">{chat.lastMessagePreview}</div>
+                            )}
+                          </div>
+                        </button>
                     <div className="chat-list-item-menu" ref={openMenuId === chat.id ? menuRef : null}>
                       <button
                         onClick={(e) => handleMenuClick(e, chat.id)}
@@ -174,11 +179,11 @@ export const ChatList = ({ activeChatId, onSelectChat }: ChatListProps) => {
                   </div>
                 ))}
               </div>
-            )}
-          </>
-        )}
-      </div>
-    </>
+            ))
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 

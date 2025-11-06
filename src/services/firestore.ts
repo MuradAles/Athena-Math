@@ -219,6 +219,34 @@ export const subscribeToChatMessages = (
 };
 
 /**
+ * Subscribe to user's chats in real-time
+ */
+export const subscribeToUserChats = (
+  userId: string,
+  callback: (chats: Chat[]) => void
+): Unsubscribe => {
+  const chatsRef = collection(db, 'users', userId, 'chats');
+  const q = query(chatsRef, orderBy('updatedAt', 'desc'), limit(50));
+
+  return onSnapshot(q, (snapshot) => {
+    const chats: Chat[] = [];
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      chats.push({
+        id: docSnap.id,
+        userId: data.userId,
+        title: data.title || 'New Chat',
+        problem: data.problem,
+        createdAt: timestampToDate(data.createdAt),
+        updatedAt: timestampToDate(data.updatedAt),
+        lastMessagePreview: data.lastMessagePreview,
+      });
+    });
+    callback(chats);
+  });
+};
+
+/**
  * Delete a chat
  */
 export const deleteChat = async (userId: string, chatId: string): Promise<void> => {

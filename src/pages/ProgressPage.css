@@ -11,3 +11,22 @@
   position: relative;
 }
 
+/* Scrollbar styling - remove white background */
+.progress-page::-webkit-scrollbar {
+  width: 8px;
+}
+
+.progress-page::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.progress-page::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.progress-page::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
