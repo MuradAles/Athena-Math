@@ -6,6 +6,7 @@
 import { useAuthContext } from '../../contexts/AuthContext';
 import { ProgressIndicator } from '../Gamification/ProgressIndicator';
 import { StreakBadge } from '../Gamification/StreakBadge';
+import AthenaLogo from '../../assets/Athena.png';
 import './Header.css';
 
 type ViewMode = 'chat' | 'progress';
@@ -44,7 +45,10 @@ export const Header = ({
   return (
     <header className="header">
       <div className="header-content">
-        <h1 className="header-title">Math Tutor</h1>
+        <div className="header-brand">
+          <img src={AthenaLogo} alt="Athena Logo" className="header-logo" />
+          <h1 className="header-title">Athena</h1>
+        </div>
         <nav className="header-nav">
           <button
             className={`header-nav-btn ${viewMode === 'chat' ? 'active' : ''}`}

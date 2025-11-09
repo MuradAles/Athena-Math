@@ -3,10 +3,12 @@
  * ChatGPT-style left sidebar with navigation, progress stats, and chat list
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { ChatList } from '../Chat/ChatList';
 import type { Chat } from '../../types/chat';
+import AthenaLogo from '../../assets/Athena.png';
+import { useConfetti } from '../../hooks/useConfetti';
 import './Sidebar.css';
 
 type ViewMode = 'chat' | 'progress';
@@ -34,10 +36,42 @@ export const Sidebar = ({
 }: SidebarProps) => {
   const { user, signOut } = useAuthContext();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
+  const [isTextClicked, setIsTextClicked] = useState(false);
+  const { celebrateFromElement, celebrate } = useConfetti();
+  const logoTextRef = useRef<HTMLSpanElement>(null);
+  const clickCountRef = useRef(0);
 
   const handleCollapseToggle = (collapsed: boolean) => {
     setIsCollapsed(collapsed);
     onCollapseChange?.(collapsed);
+  };
+
+  const handleLogoTextClick = () => {
+    if (isRotating) return; // Prevent multiple clicks during animation
+    
+    setIsRotating(true);
+    setIsTextClicked(true);
+    
+    // Increment click counter
+    clickCountRef.current += 1;
+    
+    // Every 3 clicks, trigger full-screen celebration
+    if (clickCountRef.current >= 3) {
+      celebrate(); // Full-screen confetti celebration
+      clickCountRef.current = 0; // Reset counter
+    } else {
+      // Normal click: sparkles from the "Athena" text element
+      if (logoTextRef.current) {
+        celebrateFromElement(logoTextRef.current);
+      }
+    }
+    
+    // Reset after rotation completes (720 degrees = 2 full rotations)
+    setTimeout(() => {
+      setIsRotating(false);
+      setIsTextClicked(false);
+    }, 1000); // Animation duration
   };
 
   const handleSignOut = async () => {
@@ -55,8 +89,19 @@ export const Sidebar = ({
       {/* Top Section - Logo */}
       <div className="sidebar-top">
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">📐</div>
-          {!isCollapsed && <span className="sidebar-logo-text">Athena-Math</span>}
+          <div className={`sidebar-logo-icon ${isRotating ? 'rotating' : ''}`}>
+            <img src={AthenaLogo} alt="Athena" className="sidebar-logo-image" />
+          </div>
+          {!isCollapsed && (
+            <span 
+              ref={logoTextRef}
+              className={`sidebar-logo-text ${isTextClicked ? 'clicked' : ''}`}
+              onClick={handleLogoTextClick}
+              style={{ cursor: 'pointer' }}
+            >
+              Athena
+            </span>
+          )}
         </div>
       </div>
 

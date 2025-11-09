@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { useAuthContext } from '../../contexts/AuthContext';
+import AthenaLogo from '../../assets/Athena.png';
 import './Auth.css';
 
 interface LoginProps {
@@ -59,7 +60,10 @@ export const Login = ({ onSwitchToSignup }: LoginProps = {}) => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1>Math Tutor</h1>
+        <div className="auth-brand">
+          <img src={AthenaLogo} alt="Athena Logo" className="auth-logo" />
+          <h1>Athena</h1>
+        </div>
         <p className="auth-subtitle">Sign in to continue</p>
 
         {error && <div className="auth-error">{error}</div>}

@@ -18,6 +18,18 @@
   gap: var(--spacing-lg);
 }
 
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.header-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
 .header-title {
   margin: 0;
   font-size: var(--font-size-xl);
