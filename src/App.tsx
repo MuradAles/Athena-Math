@@ -3,7 +3,7 @@
  * Main application entry point with authentication and chat management
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { AuthProvider, useAuthContext } from './contexts/AuthContext';
 import { Login, Signup } from './components/Auth';
 import { Sidebar } from './components/Common/Sidebar';
@@ -30,6 +30,9 @@ const AppContent = () => {
   // Chat management hook - single instance for entire app
   const { chats, createNewChat, deleteChatById } = useChats(user?.uid || null);
   
+  // Track if we've auto-selected the latest chat
+  const hasAutoSelectedRef = useRef(false);
+  
   // Gamification hook for progress tracking
   const { 
     trackCorrectAnswer: trackCorrectAnswerGamification,
@@ -41,6 +44,28 @@ const AppContent = () => {
   // Wrapper functions - useGamification already matches ChatContainer signature
   const trackCorrectAnswer = trackCorrectAnswerGamification;
   const trackWrongAnswer = trackWrongAnswerGamification;
+
+  // Auto-select the latest chat when chats are loaded and no chat is selected
+  useEffect(() => {
+    // Only auto-select if:
+    // 1. We have a user
+    // 2. We have chats available
+    // 3. No chat is currently selected
+    // 4. We haven't already auto-selected a chat
+    if (user && chats.length > 0 && !currentChatId && !hasAutoSelectedRef.current) {
+      // Select the latest chat (first in array, sorted by updatedAt desc)
+      const latestChat = chats[0];
+      if (latestChat) {
+        setCurrentChatId(latestChat.id);
+        hasAutoSelectedRef.current = true;
+      }
+    }
+    
+    // Reset auto-select flag if chats become empty
+    if (chats.length === 0) {
+      hasAutoSelectedRef.current = false;
+    }
+  }, [user, chats, currentChatId]);
 
   // Show loading state while checking auth
   if (authLoading) {
