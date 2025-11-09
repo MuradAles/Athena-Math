@@ -87,6 +87,10 @@ const AppContent = () => {
   // Handle chat selection
   const handleSelectChat = (chatId: string | null) => {
     setCurrentChatId(chatId);
+    // Switch to chat mode when a chat is selected (e.g., from progress page)
+    if (chatId) {
+      setViewMode('chat');
+    }
   };
 
   // Handle new chat creation
