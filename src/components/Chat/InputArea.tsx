@@ -3,7 +3,8 @@
  * Text input for user messages with image upload and send functionality
  */
 
-import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import type { KeyboardEvent, ChangeEvent, DragEvent } from 'react';
 import { useImageUpload } from '../../hooks/useImageUpload';
 import { useAudioRecording } from '../../hooks/useAudioRecording';
 import { useAuthContext } from '../../contexts/AuthContext';

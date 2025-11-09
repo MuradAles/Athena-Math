@@ -10,7 +10,7 @@ import {
   getAllTopicsProgress,
   getTopicProgress,
 } from '../services/progressService';
-import type { ProgressEvent, TopicProgress, TopicMetadata } from '../types/progress';
+import type { ProgressEvent, TopicProgress } from '../types/progress';
 
 interface UseProgressReturn {
   trackProgress: (

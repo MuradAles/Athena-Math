@@ -93,21 +93,21 @@ const AppContent = () => {
         onDeleteChat={deleteChatById}
       />
       <div className="app-main">
-        {viewMode === 'progress' ? (
-          <ProgressPage />
-        ) : (
+      {viewMode === 'progress' ? (
+        <ProgressPage />
+      ) : (
           <>
-            <div className="app-chat-area">
-              <ChatContainer 
-                ref={chatContainerRef}
-                chatId={currentChatId}
-                onTrackCorrectAnswer={trackCorrectAnswer}
-                onTrackWrongAnswer={trackWrongAnswer}
+          <div className="app-chat-area">
+            <ChatContainer 
+              ref={chatContainerRef}
+              chatId={currentChatId}
+              onTrackCorrectAnswer={trackCorrectAnswer}
+              onTrackWrongAnswer={trackWrongAnswer}
                 onToggleWhiteboard={() => setIsWhiteboardOpen(!isWhiteboardOpen)}
                 isWhiteboardOpen={isWhiteboardOpen}
-              />
-            </div>
-            <div 
+            />
+          </div>
+          <div 
             className={`whiteboard-sidebar ${isWhiteboardOpen ? 'open' : ''}`}
             style={{ width: isWhiteboardOpen ? `${whiteboardWidth}px` : '0px' }}
           >
@@ -151,7 +151,7 @@ const AppContent = () => {
           </div>
           </>
         )}
-      </div>
+        </div>
     </div>
   );
 };

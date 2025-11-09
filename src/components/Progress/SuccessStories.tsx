@@ -483,7 +483,7 @@ const generateAllAchievements = (topicsProgress: TopicProgress[]): Achievement[]
   // === ADVANCED TOPIC MASTERY ===
   const advancedTopics10 = topicsProgress.filter(t => t.totalProblems >= 10).length;
   const advancedTopics20 = topicsProgress.filter(t => t.totalProblems >= 20).length;
-  const advancedTopics30 = topicsProgress.filter(t => t.totalProblems >= 30).length;
+  // const _advancedTopics30 = topicsProgress.filter(t => t.totalProblems >= 30).length; // Reserved for future use
 
   if (advancedTopics10 >= 2) {
     achievements.push({

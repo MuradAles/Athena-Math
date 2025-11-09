@@ -105,12 +105,12 @@ export const ChatList = ({ activeChatId, onSelectChat, isCollapsed: externalColl
 
   return (
     <div className={`chat-list-inner ${isCollapsed ? 'collapsed' : ''}`}>
-      {loading ? (
-        <div className="chat-list-loading">Loading chats...</div>
-      ) : chats.length === 0 ? (
+            {loading ? (
+              <div className="chat-list-loading">Loading chats...</div>
+            ) : chats.length === 0 ? (
         <div className="chat-list-empty">{isCollapsed ? 'No chats' : 'No chats yet. Create a new chat to get started!'}</div>
-      ) : (
-        <div className="chat-list-items">
+            ) : (
+              <div className="chat-list-items">
           {isCollapsed ? (
             // Collapsed view - show icon circles only
             chats.slice(0, 10).map((chat) => (
@@ -131,21 +131,21 @@ export const ChatList = ({ activeChatId, onSelectChat, isCollapsed: externalColl
               <div key={dateLabel} className="chat-list-date-group">
                 <div className="chat-list-date-label">{dateLabel}</div>
                 {dateChats.map((chat) => (
-                      <div
-                        key={chat.id}
-                        className={`chat-list-item-wrapper ${activeChatId === chat.id ? 'active' : ''} ${deletingChatId === chat.id ? 'chat-list-item-wrapper--deleting' : ''}`}
-                      >
-                        <button
-                          onClick={() => onSelectChat(chat.id)}
-                          className="chat-list-item"
-                        >
-                          <div className="chat-list-item-content">
-                            <div className="chat-list-item-title">{chat.title}</div>
-                            {chat.lastMessagePreview && (
-                              <div className="chat-list-item-preview">{chat.lastMessagePreview}</div>
-                            )}
-                          </div>
-                        </button>
+                  <div
+                    key={chat.id}
+                    className={`chat-list-item-wrapper ${activeChatId === chat.id ? 'active' : ''} ${deletingChatId === chat.id ? 'chat-list-item-wrapper--deleting' : ''}`}
+                  >
+                    <button
+                      onClick={() => onSelectChat(chat.id)}
+                      className="chat-list-item"
+                    >
+                      <div className="chat-list-item-content">
+                        <div className="chat-list-item-title">{chat.title}</div>
+                        {chat.lastMessagePreview && (
+                          <div className="chat-list-item-preview">{chat.lastMessagePreview}</div>
+                        )}
+                      </div>
+                    </button>
                     <div className="chat-list-item-menu" ref={openMenuId === chat.id ? menuRef : null}>
                       <button
                         onClick={(e) => handleMenuClick(e, chat.id)}
@@ -180,10 +180,10 @@ export const ChatList = ({ activeChatId, onSelectChat, isCollapsed: externalColl
                 ))}
               </div>
             ))
-          )}
+            )}
         </div>
-      )}
-    </div>
+        )}
+      </div>
   );
 };
 

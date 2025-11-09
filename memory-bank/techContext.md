@@ -1,7 +1,7 @@
 # Tech Context
 ## Technologies & Setup
 
-**Last Updated:** November 4, 2025
+**Last Updated:** November 9, 2025
 
 ---
 
@@ -16,6 +16,7 @@
 - **MediaRecorder API** - Browser-based audio recording
 - **Audio API** - Browser-based audio playback
 - **Fabric.js** - Canvas drawing library for whiteboard
+- **canvas-confetti** - Celebration effects library
 
 ### Backend
 - **Firebase Cloud Functions** - Serverless API endpoints
@@ -29,7 +30,11 @@
 - **Cloud Functions** - Secure OpenAI API calls
 
 ### Hosting
-- **Vercel or Render** - Frontend hosting (NOT Firebase Hosting)
+- **Firebase Hosting** - Frontend hosting (integrated with Firebase services)
+  - Production URL: https://athena-math.web.app
+  - SPA routing configured (all routes redirect to `/index.html`)
+  - Cache headers for static assets (1 year)
+  - Build output: `dist/` folder
 
 ### AI Services
 - **Smart Model Selection** - Automatically selects based on content:
@@ -113,10 +118,12 @@ OPENAI_API_KEY=         # Stays secret, never exposed to client
 ### Frontend
 ```json
 {
-  "firebase": "^latest",
-  "openai": "^latest",
-  "katex": "^latest",
-  "react-katex": "^latest"
+  "firebase": "^12.5.0",
+  "openai": "^6.7.0",
+  "katex": "^0.16.25",
+  "react-katex": "^3.1.0",
+  "canvas-confetti": "^1.9.4",
+  "fabric": "^6.7.1"
 }
 ```
 
@@ -185,10 +192,10 @@ firebase emulators:start  # Local Firebase emulators
 ### Production
 ```bash
 npm run build            # Frontend build (output: dist/)
-firebase deploy --only functions  # Deploy Cloud Functions
-firebase deploy --only firestore:rules  # Deploy Firestore rules
-firebase deploy --only storage:rules     # Deploy Storage rules
-# Deploy dist/ to Vercel or Render
+npm run deploy           # Build and deploy everything
+npm run deploy:hosting   # Build and deploy only frontend
+npm run deploy:functions # Deploy only Cloud Functions
+npm run deploy:rules     # Deploy Firestore and Storage rules
 ```
 
 ### Key Deployment Notes

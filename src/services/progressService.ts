@@ -9,16 +9,13 @@ import {
   addDoc,
   getDoc,
   getDocs,
-  updateDoc,
-  query,
-  orderBy,
-  limit,
-  Timestamp,
   serverTimestamp,
   runTransaction,
+  Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { ProgressEvent, TopicProgress, TopicMetadata } from '../types/progress';
+import type { ProgressEvent, TopicProgress } from '../types/progress';
+import type { TopicMetadata } from '../types/progress';
 
 /**
  * Extract topic metadata from problem text using AI
@@ -61,7 +58,7 @@ export const extractTopicMetadata = async (problem: string): Promise<TopicMetada
   } catch (error) {
     console.error('❌ Error extracting topic:', error);
     // Fallback to default values
-    const fallback = {
+    const fallback: TopicMetadata = {
       topic: 'unknown',
       difficulty: 'medium',
     };
@@ -322,11 +319,12 @@ export const getAllTopicsProgress = async (userId: string): Promise<TopicProgres
 
 /**
  * Convert Firestore timestamp to Date
+ * Reserved for future use
  */
-const timestampToDate = (timestamp: Timestamp | Date | null | undefined): Date => {
-  if (!timestamp) return new Date();
-  if (timestamp instanceof Date) return timestamp;
-  if (timestamp instanceof Timestamp) return timestamp.toDate();
-  return new Date();
-};
+// const _timestampToDate = (timestamp: Timestamp | Date | null | undefined): Date => {
+//   if (!timestamp) return new Date();
+//   if (timestamp instanceof Date) return timestamp;
+//   if (timestamp instanceof Timestamp) return timestamp.toDate();
+//   return new Date();
+// };
 

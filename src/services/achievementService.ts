@@ -9,13 +9,10 @@ import {
   getDoc,
   getDocs,
   setDoc,
-  query,
-  where,
   serverTimestamp,
-  Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { Achievement, AchievementType } from '../types/achievements';
+import type { Achievement } from '../types/achievements';
 import { ACHIEVEMENT_DEFINITIONS } from '../types/achievements';
 
 /**

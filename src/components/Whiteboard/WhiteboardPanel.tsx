@@ -5,7 +5,8 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Canvas, PencilBrush, Rect, Circle, IText, Path } from 'fabric';
+import { Canvas, PencilBrush, Rect, Circle, IText, Object as FabricObject, FabricImage } from 'fabric';
+import type { TEvent, TPointerEvent } from 'fabric';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useImageUpload } from '../../hooks/useImageUpload';
 import './WhiteboardPanel.css';
@@ -20,9 +21,9 @@ interface WhiteboardPanelProps {
 type Tool = 'pen' | 'eraser' | 'rectangle' | 'circle' | 'text' | 'select';
 
 export const WhiteboardPanel = ({ 
-  chatId,
+  chatId: _chatId,
   width = 400,
-  onClose,
+  onClose: _onClose,
   onSendCanvas,
 }: WhiteboardPanelProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,7 +33,7 @@ export const WhiteboardPanel = ({
   const [brushColor, setBrushColor] = useState('#000000');
   const [brushWidth, setBrushWidth] = useState(3);
   const brushWidthRef = useRef(brushWidth); // Ref to track brush width for eraser
-  const [eraserPreview, setEraserPreview] = useState<{ x: number; y: number } | null>(null);
+  const [_eraserPreview, setEraserPreview] = useState<{ x: number; y: number } | null>(null);
   const eraserPreviewCircleRef = useRef<Circle | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const backgroundImageRef = useRef<any>(null); // Fabric.js Image object
@@ -165,10 +166,10 @@ export const WhiteboardPanel = ({
       }
     };
     
-    const handleEraserMouseDown = (e: fabric.IEvent<MouseEvent>) => {
+    const handleEraserMouseDown = (e: TEvent<TPointerEvent>) => {
       const pointer = canvas.getPointer(e.e);
       const eraserRadius = getEraserRadius();
-      const objectsToRemove: fabric.Object[] = [];
+      const objectsToRemove: FabricObject[] = [];
       
       // Check all objects to see if they intersect with eraser area
       canvas.getObjects().forEach((obj) => {
@@ -193,7 +194,7 @@ export const WhiteboardPanel = ({
       }
     };
     
-    const handleEraserMouseMove = (e: fabric.IEvent<MouseEvent>) => {
+    const handleEraserMouseMove = (e: TEvent<TPointerEvent>) => {
       const pointer = canvas.getPointer(e.e);
       
       // Show preview when hovering (not erasing)
@@ -205,7 +206,7 @@ export const WhiteboardPanel = ({
       if (!isErasing) return;
       
       const eraserRadius = getEraserRadius();
-      const objectsToRemove: fabric.Object[] = [];
+      const objectsToRemove: FabricObject[] = [];
       
       // Check all objects to see if they intersect with eraser area
       canvas.getObjects().forEach((obj) => {
@@ -236,7 +237,7 @@ export const WhiteboardPanel = ({
     };
     
     // Store eraser handlers - check activeToolRef for current tool
-    const eraserMouseDownHandler = (e: fabric.IEvent<MouseEvent>) => {
+    const eraserMouseDownHandler = (e: TEvent<TPointerEvent>) => {
       if (activeToolRef.current === 'eraser') {
         hideEraserPreview(); // Hide preview when starting to erase
         isErasing = true;
@@ -244,7 +245,7 @@ export const WhiteboardPanel = ({
       }
     };
     
-    const eraserMouseMoveHandler = (e: fabric.IEvent<MouseEvent>) => {
+    const eraserMouseMoveHandler = (e: TEvent<TPointerEvent>) => {
       if (activeToolRef.current === 'eraser') {
         handleEraserMouseMove(e);
       }
@@ -483,7 +484,7 @@ export const WhiteboardPanel = ({
         
         // Use Fabric.js Image.fromURL to load image
         const { Image } = await import('fabric');
-        Image.fromURL(imageUrl, (img) => {
+        Image.fromURL(imageUrl).then((img: FabricImage) => {
           if (!fabricCanvasRef.current) return;
 
           // Remove existing background image if any
@@ -518,8 +519,18 @@ export const WhiteboardPanel = ({
           });
 
           // Add image to canvas (send to back)
+          // Remove all objects temporarily
+          const existingObjects = fabricCanvasRef.current.getObjects();
+          fabricCanvasRef.current.remove(...existingObjects);
+          
+          // Add image first (will be at back)
           fabricCanvasRef.current.add(img);
-          fabricCanvasRef.current.sendToBack(img);
+          
+          // Re-add all other objects on top
+          existingObjects.forEach(obj => {
+            fabricCanvasRef.current?.add(obj);
+          });
+          
           backgroundImageRef.current = img;
           
           fabricCanvasRef.current.renderAll();

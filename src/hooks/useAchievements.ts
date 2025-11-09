@@ -7,8 +7,6 @@ import { useState, useCallback, useEffect } from 'react';
 import {
   getUserAchievements,
   checkAchievements,
-  checkTopicMastery,
-  checkDailyGoals,
 } from '../services/achievementService';
 import type { Achievement } from '../types/achievements';
 

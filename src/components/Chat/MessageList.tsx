@@ -24,7 +24,7 @@ export const MessageList = ({ messages, streamingMessage, chatId, correctAnswerM
   const isInitializedRef = useRef(false);
   const currentChatIdRef = useRef<string | null>(null);
   const lastMessageCountRef = useRef(0);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Reset seen messages when chat changes
   useEffect(() => {

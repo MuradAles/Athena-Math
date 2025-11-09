@@ -129,7 +129,7 @@
   position: relative;
   margin-bottom: var(--spacing-xs);
   border-radius: var(--border-radius-md);
-  transition: background-color var(--transition-base);
+  transition: all var(--transition-base);
 }
 
 .chat-list-item-wrapper.chat-list-item-wrapper--deleting {
@@ -150,6 +150,7 @@
 
 .chat-list-item-wrapper:hover {
   background: var(--color-background);
+  transform: scale(1.02);
 }
 
 .chat-list-item-wrapper.active {
@@ -169,7 +170,7 @@
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .chat-list-item-content {

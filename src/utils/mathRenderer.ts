@@ -1,7 +1,7 @@
 /**
  * Math renderer utility
  * Detects and parses LaTeX math expressions in text
- * Supports inline math ($...$) and block math ($$...$$)
+ * Supports inline math ($...$ or \(...\)) and block math ($$...$$ or \[...\])
  */
 
 export interface MathSegment {
@@ -22,13 +22,11 @@ export function parseMathContent(text: string): MathSegment[] {
   if (!text) return [{ type: 'text', content: text }];
 
   const segments: MathSegment[] = [];
-  let currentIndex = 0;
   
   // Pattern for block math: $$...$$ or \[...\]
   const blockMathPattern = /(\$\$|\\\[)([\s\S]*?)(\$\$|\\\])/g;
   // Pattern for inline math: $...$ or \(...\)
-  // Use negative lookbehind/lookahead to avoid matching $$ as two $...$
-  const inlineMathPattern = /(?<!\$)\$(?!\$)([^\$]+?)\$(?!\$)|\\\(([^\)]+?)\\\)/g;
+  // Note: Inline math is processed in parseInlineMath function, not here
 
   // First, find all block math (process before inline to avoid conflicts)
   const blockMatches: Array<{ start: number; end: number; content: string }> = [];
@@ -40,7 +38,8 @@ export function parseMathContent(text: string): MathSegment[] {
   while ((match = blockMathPattern.exec(text)) !== null) {
     const start = match.index;
     const end = match.index + match[0].length;
-    const content = match[2]; // Content between delimiters
+    // Content is in match[2] (between delimiters)
+    const content = match[2];
     
     blockMatches.push({ start, end, content });
   }
@@ -92,7 +91,10 @@ export function parseMathContent(text: string): MathSegment[] {
  */
 function parseInlineMath(text: string): MathSegment[] {
   const segments: MathSegment[] = [];
-  const inlineMathPattern = /(?<!\$)\$(?!\$)([^\$]+?)\$(?!\$)|\\\(([^\)]+?)\\\)/g;
+  // Improved pattern: matches $...$ or \(...\)
+  // For \(...\), match everything between \( and \) non-greedily
+  // Use [\s\S] instead of . to match newlines too
+  const inlineMathPattern = /(?<!\$)\$(?!\$)([^\$]+?)\$(?!\$)|\\\(([\s\S]*?)\\\)/g;
   
   let lastIndex = 0;
   let match;
@@ -109,12 +111,15 @@ function parseInlineMath(text: string): MathSegment[] {
       });
     }
     
-    // Add inline math (content is in match[1] or match[2] depending on delimiter)
+    // Add inline math
+    // match[1] is for $...$ pattern, match[2] is for \(...\) pattern
     const mathContent = match[1] || match[2];
-    segments.push({
-      type: 'inline',
-      content: mathContent.trim(),
-    });
+    if (mathContent) {
+      segments.push({
+        type: 'inline',
+        content: mathContent.trim(),
+      });
+    }
     
     lastIndex = match.index + match[0].length;
   }

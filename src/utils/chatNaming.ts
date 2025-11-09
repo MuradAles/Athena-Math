@@ -8,20 +8,21 @@
  * Convert natural language math to simplified notation
  * Examples: "x squared minus four" → "x² - 4", "two x plus five" → "2x + 5"
  */
-const normalizeMathExpression = (text: string): string => {
-  let normalized = text.toLowerCase();
-  
-  // Common patterns
-  normalized = normalized.replace(/squared|²|\^2/gi, '²');
-  normalized = normalized.replace(/cubed|³|\^3/gi, '³');
-  normalized = normalized.replace(/times|multiplied by|\*/g, '×');
-  normalized = normalized.replace(/divided by|\//g, '÷');
-  normalized = normalized.replace(/plus|\+/g, '+');
-  normalized = normalized.replace(/minus|-/g, '-');
-  normalized = normalized.replace(/equals?|=/g, '=');
-  
-  return normalized;
-};
+// Reserved for future use
+// const _normalizeMathExpression = (text: string): string => {
+//   let normalized = text.toLowerCase();
+//   
+//   // Common patterns
+//   normalized = normalized.replace(/squared|²|\^2/gi, '²');
+//   normalized = normalized.replace(/cubed|³|\^3/gi, '³');
+//   normalized = normalized.replace(/times|multiplied by|\*/g, '×');
+//   normalized = normalized.replace(/divided by|\//g, '÷');
+//   normalized = normalized.replace(/plus|\+/g, '+');
+//   normalized = normalized.replace(/minus|-/g, '-');
+//   normalized = normalized.replace(/equals?|=/g, '=');
+//   
+//   return normalized;
+// };
 
 /**
  * Extract mathematical problem from natural language

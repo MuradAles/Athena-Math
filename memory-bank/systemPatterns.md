@@ -364,5 +364,49 @@ users/{userId}/progress/{topicId}/aggregated
 
 **Why:** Enables efficient aggregation by topic, supports parent dashboard, allows trend analysis and topic mastery tracking
 
-**Document Status:** Architecture patterns established, full functionality implemented with authentication, persistence, image support, math tools validation, whiteboard integration, gamification, and progress tracking
+### 12. Real-Time Subscription Pattern
+**Pattern:** Firestore real-time subscriptions instead of polling
+
+```typescript
+// Subscribe to user's chats in real-time
+const unsubscribe = subscribeToUserChats(userId, (updatedChats) => {
+  setChats(updatedChats);
+});
+
+// Chat list updates automatically when titles change
+```
+
+**Why:** Instant updates without page reload, better UX, reduces unnecessary API calls
+
+### 13. Celebration System Pattern
+**Pattern:** Multi-layered celebration effects with debouncing
+
+```typescript
+// Confetti hook with debouncing
+const { celebrate } = useConfetti();
+// Triggers on correct answer detection
+
+// Sparkle animation with one-time trigger
+const hasShownSparklesRef = useRef(false);
+if (isCorrectAnswer && !hasShownSparklesRef.current) {
+  hasShownSparklesRef.current = true;
+  setShowSparkles(true);
+}
+```
+
+**Why:** Provides positive reinforcement, motivates students, prevents duplicate celebrations
+
+### 14. Sidebar Navigation Pattern
+**Pattern:** Collapsible sidebar with persistent chat list access
+
+```typescript
+// Sidebar state management
+const [isCollapsed, setIsCollapsed] = useState(false);
+// Main content adjusts margin dynamically
+margin-left: ${isCollapsed ? '60px' : '260px'};
+```
+
+**Why:** Better space utilization, quick chat access, familiar UX pattern (ChatGPT-style)
+
+**Document Status:** Architecture patterns established, full functionality implemented with authentication, persistence, image support, math tools validation, whiteboard integration, gamification, progress tracking, celebration system, and real-time updates
 
