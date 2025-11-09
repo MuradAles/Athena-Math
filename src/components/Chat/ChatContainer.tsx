@@ -290,16 +290,47 @@ export const ChatContainer = forwardRef<ChatContainerRef, ChatContainerProps>(({
             messageId: assistantMessage.id,
           });
           
-          // Mark this message as indicating a correct answer
-          correctAnswerMessageIdsRef.current.add(assistantMessage.id);
-          onCorrectAnswerDetected?.(assistantMessage.id);
+          // Check if this is the FINAL answer (problem completely solved)
+          // Look for indicators in the AI's message that the problem is finished
+          const messageText = completeMessage.toLowerCase();
+          const isFinalAnswer = 
+            messageText.includes('solved') ||
+            messageText.includes('complete') ||
+            messageText.includes('finished') ||
+            messageText.includes('final answer') ||
+            messageText.includes('well done') ||
+            messageText.includes('excellent work') ||
+            messageText.includes('perfect') ||
+            messageText.includes('exactly right') ||
+            messageText.includes('nailed it') ||
+            messageText.includes('that\'s it') ||
+            // Also check if AI says we're done with this problem
+            (messageText.includes('done') && (messageText.includes('problem') || messageText.includes('all'))) ||
+            // Check if message suggests moving to a new problem
+            messageText.includes('ready for another') ||
+            messageText.includes('new problem') ||
+            messageText.includes('next problem');
           
-          // 🎉 Celebrate with confetti!
-          console.log('🎉 Triggering confetti celebration for message:', assistantMessage.id);
-          celebrate();
+          console.log('🎯 Final answer check:', {
+            isFinalAnswer,
+            messagePreview: completeMessage.substring(0, 100),
+          });
           
-          // Track progress with gamification
-          if (onTrackCorrectAnswer) {
+          // ONLY show sparkles and confetti if this is the FINAL answer
+          if (isFinalAnswer) {
+            // Mark this message as indicating a correct answer
+            correctAnswerMessageIdsRef.current.add(assistantMessage.id);
+            onCorrectAnswerDetected?.(assistantMessage.id);
+            
+            // 🎉 Celebrate with confetti!
+            console.log('🎉 Triggering confetti celebration for FINAL answer:', assistantMessage.id);
+            celebrate();
+          } else {
+            console.log('✅ Correct step, but not final answer - no celebration yet');
+          }
+          
+          // Track progress with gamification (only for final answer)
+          if (isFinalAnswer && onTrackCorrectAnswer) {
             try {
               console.log('📊 Tracking progress...', {
                 chatId,
@@ -317,6 +348,8 @@ export const ChatContainer = forwardRef<ChatContainerRef, ChatContainerProps>(({
             } catch (error) {
               console.error('❌ Error tracking progress:', error);
             }
+          } else if (!isFinalAnswer) {
+            console.log('⏭️ Correct step - continuing to next step');
           } else {
             console.warn('⚠️ onTrackCorrectAnswer callback not provided');
           }
